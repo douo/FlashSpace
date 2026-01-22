@@ -25,6 +25,10 @@ final class DisplayManager: ObservableObject {
         focusHistory.last(where: condition)
     }
 
+    func lastKnownDisplay(for app: MacApp) -> DisplayName? {
+        focusHistory.last(where: { $0.app == app })?.display
+    }
+
     func trackDisplayFocus(on display: DisplayName, for application: NSRunningApplication) {
         guard !application.isFinder || application.allWindows.isNotEmpty else { return }
 
@@ -55,7 +59,14 @@ final class DisplayManager: ObservableObject {
             .map(\.target)
             .first(where: NSScreen.isConnected)
 
-        return alternative ?? NSScreen.main?.localizedName ?? ""
+        if let alternative {
+            Logger.log("[Display] Resolved alternative for '\(display)' -> '\(alternative)'")
+            return alternative
+        }
+
+        let main = NSScreen.main?.localizedName ?? ""
+        Logger.log("[Display] Fallback for '\(display)' -> '\(main)'")
+        return main
     }
 
     func lastActiveDisplay(from candidates: Set<DisplayName>) -> DisplayName {

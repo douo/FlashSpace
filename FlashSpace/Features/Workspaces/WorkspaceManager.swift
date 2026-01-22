@@ -107,18 +107,18 @@ final class WorkspaceManager: ObservableObject {
     private func rememberLastFocusedApp(_ application: NSRunningApplication, retry: Bool) {
         guard application.display != nil else {
             if retry {
-                Logger.log("Retrying to get display for \(application.localizedName ?? "")")
                 return DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     if let frontmostApp = NSWorkspace.shared.frontmostApplication {
                         self.rememberLastFocusedApp(frontmostApp, retry: false)
                     }
                 }
             } else {
-                return Logger.log("Unable to get display for \(application.localizedName ?? "")")
+                return
             }
         }
 
-        let focusedDisplay = NSScreen.main?.localizedName ?? ""
+        // Use the app's actual display, or fallback to main screen
+        let focusedDisplay = application.display ?? NSScreen.main?.localizedName ?? ""
 
         if let activeWorkspace = activeWorkspace[focusedDisplay], activeWorkspace.apps.containsApp(application) {
             updateLastFocusedApp(application.toMacApp, in: activeWorkspace)
@@ -140,7 +140,11 @@ final class WorkspaceManager: ObservableObject {
         }
     }
 
-    private func showApps(in workspace: Workspace, setFocus: Bool, on displays: Set<DisplayName>) {
+    private func showApps(
+        in workspace: Workspace,
+        setFocus: Bool,
+        on displays: Set<DisplayName>
+    ) {
         let regularApps = NSWorkspace.shared.runningRegularApps
         let floatingApps = floatingAppsSettings.floatingApps
         let hiddenApps = appsHiddenManually[workspace.id] ?? []
@@ -202,7 +206,13 @@ final class WorkspaceManager: ObservableObject {
                     (!workspaceSettings.keepUnassignedAppsOnSwitch || allAssignedApps.contains($0.bundleIdentifier ?? ""))
             }
             .filter { isAnyWorkspaceAppRunning || $0.bundleURL?.fileName != "Finder" }
-            .filter { $0.isOnAnyDisplay(displays) }
+            .filter {
+                let onDisplay = $0.isOnAnyDisplay(displays)
+                if onDisplay {
+                    Logger.log("[Manager] Marking for HIDE: \($0.localizedName ?? "Unknown") (Target Displays: \(displays), App Displays: \($0.allDisplays))")
+                }
+                return onDisplay
+            }
 
         for app in appsToHide {
             Logger.log("HIDE: \(app.localizedName ?? "")")
@@ -340,8 +350,35 @@ final class WorkspaceManager: ObservableObject {
 
 // MARK: - Workspace Actions
 extension WorkspaceManager {
-    func activateWorkspace(_ workspace: Workspace, setFocus: Bool) {
-        let displays = workspace.displays
+    func activateWorkspace(_ workspace: Workspace, setFocus: Bool, retryCount: Int = 0) {
+        var displays = workspace.displays
+        
+        // Fix for "No Running Apps" issue in Dynamic Mode:
+        // If apps are hidden, they have no display coordinates, so displays is empty.
+        // We must allow activation to proceed so showApps() can unhide them.
+        // We fallback to the current main display to have a "stage" to act on.
+        if workspace.isDynamic, displays.isEmpty, workspace.apps.isNotEmpty {
+             if let lastDisplay = workspace.apps.compactMap({ displayManager.lastKnownDisplay(for: $0) }).first {
+                 Logger.log("Dynamic workspace has hidden apps. Smart Fallback -> Last known display: '\(lastDisplay)'")
+                 displays = [lastDisplay]
+             } else {
+                 if retryCount < 3 {
+                     // Unhide apps to force macOS to report their true location
+                     showApps(in: workspace, setFocus: false, on: [])
+                     
+                     // Retry activation after a short delay
+                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                         self.activateWorkspace(workspace, setFocus: setFocus, retryCount: retryCount + 1)
+                     }
+                     return
+                 } else {
+                     Logger.log("Dynamic workspace has hidden apps. Retries exhausted. Fallback to main display.")
+                     if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
+                         displays = [fallback]
+                     }
+                 }
+             }
+        }
 
         Logger.log("")
         Logger.log("")
@@ -350,14 +387,15 @@ extension WorkspaceManager {
         Logger.log("----")
         SpaceControl.hide()
 
-        if workspace.isDynamic, workspace.displays.isEmpty,
+        // Use local `displays` variable (which might be updated by fallback)
+        if workspace.isDynamic, displays.isEmpty,
            workspace.apps.isNotEmpty, workspace.openAppsOnActivation == true {
             Logger.log("No running apps in the workspace - launching apps")
             openAppsIfNeeded(in: workspace)
 
             if !workspaceSettings.activeWorkspaceOnFocusChange {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self.activateWorkspace(workspace, setFocus: setFocus)
+                    self.activateWorkspace(workspace, setFocus: setFocus, retryCount: 0)
                 }
             }
             return

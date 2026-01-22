@@ -26,6 +26,8 @@ extension NSRunningApplication {
 
     var allDisplays: Set<DisplayName> {
         allWindows
+            .filter { !$0.window.isMinimized } // Ignore minimized windows to prevent phantom active displays
+            .filter { $0.frame.width > 10 && $0.frame.height > 10 }
             .compactMap { $0.frame.getDisplay() }
             .asSet
     }
