@@ -65,4 +65,19 @@ extension NSRunningApplication {
     func isOnAnyDisplay(_ displays: Set<DisplayName>) -> Bool {
         !allDisplays.isDisjoint(with: displays)
     }
+
+    func getDisplay(using windowList: [WindowInfo]) -> DisplayName? {
+        // HACK: Workaround for Orion Browser
+        if isOrion {
+            return windowList
+                .first { $0.pid == processIdentifier && $0.frame.width > 10 && $0.frame.height > 10 }?
+                .frame
+                .getDisplay()
+        }
+
+        return windowList
+            .first { $0.pid == processIdentifier }?
+            .frame
+            .getDisplay()
+    }
 }

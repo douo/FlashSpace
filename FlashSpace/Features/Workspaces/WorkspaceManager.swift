@@ -363,36 +363,32 @@ final class WorkspaceManager: ObservableObject {
 
 // MARK: - Workspace Actions
 extension WorkspaceManager {
-    func activateWorkspace(_ workspace: Workspace, setFocus: Bool, retryCount: Int = 0) {
+    func activateWorkspace(_ workspace: Workspace, setFocus: Bool) {
         var displays = workspace.displays
-        // Fix for "No Running Apps" issue in Dynamic Mode:
-        // If apps are hidden, they have no display coordinates, so displays is empty.
-        // We must allow activation to proceed so showApps() can unhide them.
-        // We fallback to the current main display to have a "stage" to act on.
-        if workspace.isDynamic, displays.isEmpty, workspace.apps.isNotEmpty {
-            if let lastDisplay = workspace.apps
-                .compactMap({ displayManager.lastKnownDisplay(for: $0) }).first {
-                Logger.log(
-                    "Dynamic workspace has hidden apps. Smart Fallback -> Last known display: '\(lastDisplay)'"
-                )
-                displays = [lastDisplay]
-            } else {
-                if retryCount < 3 {
-                    // Unhide apps to force macOS to report their true location
-                    showApps(in: workspace, setFocus: false, on: [])
 
-                    // Retry activation after a short delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        self.activateWorkspace(workspace, setFocus: setFocus, retryCount: retryCount + 1)
-                    }
-                    return
-                } else {
-                    Logger.log(
-                        "Dynamic workspace has hidden apps. Retries exhausted. Fallback to main display."
-                    )
-                    if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
-                        displays = [fallback]
-                    }
+        // ============================================================================
+        // DYNAMIC WORKSPACE DISPLAY RESOLUTION
+        // ============================================================================
+        // 问题背景：
+        // Dynamic Workspace 的 displays 属性依赖于其 apps 的窗口位置。
+        // 当 apps 被隐藏或处于 macOS 原生全屏时，Accessibility API 无法获取窗口位置，
+        // 导致 workspace.displays 为空，无法确定应该在哪个屏幕上激活工作区。
+        //
+        // 解决方案：
+        // 使用 CoreGraphics API (CGWindowListCopyWindowInfo) 快速查询窗口位置，
+        // 该 API 可以获取所有空间的窗口（包括全屏空间），且性能优异。
+        // 如果 CoreGraphics 也无法解析（例如应用刚启动），则 fallback 到光标所在屏幕。
+        // ============================================================================
+        if workspace.isDynamic, displays.isEmpty, workspace.apps.isNotEmpty {
+            let resolvedDisplays = displayManager.resolveDisplaysForApps(workspace.apps)
+
+            if resolvedDisplays.isNotEmpty {
+                displays = resolvedDisplays
+            } else {
+                // Fallback: 使用光标所在屏幕或主屏幕
+                Logger.log("[Display] CoreGraphics failed, fallback to cursor/main screen")
+                if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
+                    displays = [fallback]
                 }
             }
         }
@@ -412,7 +408,7 @@ extension WorkspaceManager {
 
             if !workspaceSettings.activeWorkspaceOnFocusChange {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self.activateWorkspace(workspace, setFocus: setFocus, retryCount: 0)
+                    self.activateWorkspace(workspace, setFocus: setFocus)
                 }
             }
             return

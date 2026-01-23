@@ -25,10 +25,6 @@ final class DisplayManager: ObservableObject {
         focusHistory.last(where: condition)
     }
 
-    func lastKnownDisplay(for app: MacApp) -> DisplayName? {
-        focusHistory.last(where: { $0.app == app })?.display
-    }
-
     func trackDisplayFocus(on display: DisplayName, for application: NSRunningApplication) {
         guard !application.isFinder || application.allWindows.isNotEmpty else { return }
 
@@ -79,5 +75,30 @@ final class DisplayManager: ObservableObject {
         }
 
         return candidates.first ?? NSScreen.main?.localizedName ?? ""
+    }
+
+    // MARK: - CoreGraphics-based Display Resolution
+
+    /// 使用 CoreGraphics API 快速解析应用的显示器位置
+    /// - 优点：可以获取所有空间的窗口，包括 macOS 原生全屏空间
+    /// - 用途：解决 Dynamic Workspace 中隐藏或全屏应用无法通过 Accessibility API 获取位置的问题
+    /// - Parameter apps: 要查询的应用列表
+    /// - Returns: 应用所在的显示器集合，如果无法解析则返回空集合
+    func resolveDisplaysForApps(_ apps: [MacApp]) -> Set<DisplayName> {
+        let runningApps = apps.compactMap { NSWorkspace.shared.runningApplications.find($0) }
+        guard runningApps.isNotEmpty else { return [] }
+
+        let pids = runningApps.map(\.processIdentifier)
+        let windows = WindowInfoUtils.getWindows(for: pids)
+
+        let displays = runningApps
+            .compactMap { $0.getDisplay(using: windows) }
+            .asSet
+
+        if displays.isNotEmpty {
+            Logger.log("[Display] Resolved via CoreGraphics: \(displays)")
+        }
+
+        return displays
     }
 }
