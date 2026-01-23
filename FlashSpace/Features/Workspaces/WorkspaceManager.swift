@@ -181,6 +181,16 @@ final class WorkspaceManager: ObservableObject {
             Logger.log("FOCUS: \(toFocus?.localizedName ?? "")")
             toFocus?.activate()
             centerCursorIfNeeded(in: toFocus?.frame)
+
+            // Workaround: 对于 Chromium 系浏览器，需要额外处理 web content 焦点
+            // unhide 后浏览器窗口获得焦点，但 web content 不会，导致扩展（如 Vimium C）无法接收键盘事件
+            // 这里优先尝试非侵入式地设置 AXWebArea 焦点；如果失败，作为备选方案会模拟按下无修饰符的 Esc 键
+            // 延迟 0.2s 以等待窗口动画完成和应用完全响应
+            if let toFocus, BrowserFocusHelper.isBrowser(toFocus) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    BrowserFocusHelper.focusWebContent(for: toFocus)
+                }
+            }
         } else {
             for app in appsToShow {
                 Logger.log("SHOW: \(app.localizedName ?? "")")

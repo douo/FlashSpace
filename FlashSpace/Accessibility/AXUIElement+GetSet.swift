@@ -15,7 +15,8 @@ extension AXUIElement {
         return value as? T
     }
 
-    func setAttribute(_ attribute: NSAccessibility.Attribute, value: some Any) {
-        AXUIElementSetAttributeValue(self, attribute as CFString, value as CFTypeRef)
+    @discardableResult
+    func setAttribute(_ attribute: NSAccessibility.Attribute, value: some Any) -> Bool {
+        AXUIElementSetAttributeValue(self, attribute as CFString, value as CFTypeRef) == .success
     }
 }
