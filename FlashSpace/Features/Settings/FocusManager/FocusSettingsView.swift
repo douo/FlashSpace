@@ -38,6 +38,11 @@ struct FocusSettingsView: View {
                     hotkey("Focus Previous Window", for: $settings.focusPreviousWorkspaceWindow)
                 }
 
+                Section {
+                    hotkey("Focus Next Screen", for: $settings.focusNextScreen)
+                    hotkey("Focus Previous Screen", for: $settings.focusPreviousScreen)
+                }
+
                 Section("Experimental") {
                     Toggle("Focus Frontmost Window", isOn: $settings.focusFrontmostWindow)
                     Text(

@@ -20,17 +20,20 @@ final class FocusManager {
     private let workspaceManager: WorkspaceManager
     private let settings: FocusManagerSettings
     private let floatingAppsSettings: FloatingAppsSettings
+    private let displayManager: DisplayManager
 
     init(
         workspaceRepository: WorkspaceRepository,
         workspaceManager: WorkspaceManager,
         focusManagerSettings: FocusManagerSettings,
-        floatingAppsSettings: FloatingAppsSettings
+        floatingAppsSettings: FloatingAppsSettings,
+        displayManager: DisplayManager
     ) {
         self.workspaceRepository = workspaceRepository
         self.workspaceManager = workspaceManager
         self.settings = focusManagerSettings
         self.floatingAppsSettings = floatingAppsSettings
+        self.displayManager = displayManager
     }
 
     func getHotKeys() -> [(AppHotKey, () -> ())] {
@@ -44,7 +47,9 @@ final class FocusManager {
             settings.focusNextWorkspaceApp.flatMap { ($0, nextWorkspaceApp) },
             settings.focusPreviousWorkspaceApp.flatMap { ($0, previousWorkspaceApp) },
             settings.focusNextWorkspaceWindow.flatMap { ($0, nextWorkspaceWindow) },
-            settings.focusPreviousWorkspaceWindow.flatMap { ($0, previousWorkspaceWindow) }
+            settings.focusPreviousWorkspaceWindow.flatMap { ($0, previousWorkspaceWindow) },
+            settings.focusNextScreen.flatMap { ($0, focusNextScreen) },
+            settings.focusPreviousScreen.flatMap { ($0, focusPreviousScreen) }
         ].compactMap { $0 }
     }
 
@@ -167,6 +172,83 @@ final class FocusManager {
             other.minY < focusedAppFrame.minY &&
                 other.horizontalIntersect(with: focusedAppFrame)
         }
+    }
+
+    func focusNextScreen() {
+        focusScreen(offset: 1)
+    }
+
+    func focusPreviousScreen() {
+        focusScreen(offset: -1)
+    }
+
+    private func focusScreen(offset: Int) {
+        let screens = NSScreen.screens.sorted { $0.frame.minX < $1.frame.minX }
+        guard !screens.isEmpty else { return }
+
+        let mouseLocation = NSEvent.mouseLocation
+        let currentScreenIndex = screens.firstIndex { NSMouseInRect(mouseLocation, $0.frame, false) } ??
+            screens.firstIndex { $0 == NSScreen.main } ?? 0
+
+        let targetIndex = (currentScreenIndex + offset + screens.count) % screens.count
+        let targetScreen = screens[targetIndex]
+
+        activateScreen(targetScreen)
+    }
+
+    private func activateScreen(_ screen: NSScreen) {
+        let displayName = screen.localizedName
+        let screenFrameCG = cocoaToCGRect(screen.frame)
+
+        // 收集目标屏幕上所有可见窗口
+        let visibleWindowsOnScreen = visibleApps
+            .flatMap { app in
+                app.allWindows.map { (app: app, window: $0.window, frame: $0.frame) }
+            }
+            .filter { windowInfo in
+                // 窗口坐标是 CG 坐标系
+                screenFrameCG.contains(
+                    CGPoint(x: windowInfo.frame.midX, y: windowInfo.frame.midY)
+                ) && !windowInfo.window.isMinimized
+            }
+
+        // 优先查找最近获得焦点的 App 的窗口
+        if let lastFocused = displayManager.lastFocusedDisplay(where: { $0.display == displayName }) {
+            if let targetWindow = visibleWindowsOnScreen
+                .first(where: { $0.app.bundleIdentifier == lastFocused.app.bundleIdentifier })
+            {
+                targetWindow.window.focus()
+                targetWindow.app.activate()
+                let windowCenter = CGPoint(x: targetWindow.frame.midX, y: targetWindow.frame.midY)
+                CGWarpMouseCursorPosition(windowCenter)
+                return
+            }
+        }
+
+        // 回退：选择目标屏幕上最上层的可见窗口（按 Y 坐标排序，Y 小的在上）
+        if let topWindow = visibleWindowsOnScreen.sorted(by: { $0.frame.minY < $1.frame.minY }).first {
+            topWindow.window.focus()
+            topWindow.app.activate()
+            let windowCenter = CGPoint(x: topWindow.frame.midX, y: topWindow.frame.midY)
+            CGWarpMouseCursorPosition(windowCenter)
+        } else {
+            // 没有窗口，只移动鼠标到屏幕中心
+            let screenCenterCG = cocoaToCGPoint(CGPoint(x: screen.frame.midX, y: screen.frame.midY))
+            CGWarpMouseCursorPosition(screenCenterCG)
+        }
+    }
+
+    /// 将 Cocoa 坐标系的点转换为 CG 坐标系的点
+    private func cocoaToCGPoint(_ point: CGPoint) -> CGPoint {
+        guard let mainScreen = NSScreen.screens.first else { return point }
+        return CGPoint(x: point.x, y: mainScreen.frame.height - point.y)
+    }
+
+    /// 将 Cocoa 坐标系的矩形转换为 CG 坐标系的矩形
+    private func cocoaToCGRect(_ rect: CGRect) -> CGRect {
+        guard let mainScreen = NSScreen.screens.first else { return rect }
+        let cgY = mainScreen.frame.height - rect.maxY
+        return CGRect(x: rect.minX, y: cgY, width: rect.width, height: rect.height)
     }
 
     /// Predicate compares two frames using window coordinates.

@@ -20,6 +20,8 @@ final class FocusManagerSettings: ObservableObject {
     @Published var focusPreviousWorkspaceApp: AppHotKey?
     @Published var focusNextWorkspaceWindow: AppHotKey?
     @Published var focusPreviousWorkspaceWindow: AppHotKey?
+    @Published var focusNextScreen: AppHotKey?
+    @Published var focusPreviousScreen: AppHotKey?
     @Published var focusFrontmostWindow = false
 
     private var observer: AnyCancellable?
@@ -39,6 +41,8 @@ final class FocusManagerSettings: ObservableObject {
             $focusPreviousWorkspaceApp.settingsPublisher(),
             $focusNextWorkspaceWindow.settingsPublisher(),
             $focusPreviousWorkspaceWindow.settingsPublisher(),
+            $focusNextScreen.settingsPublisher(),
+            $focusPreviousScreen.settingsPublisher(),
             $focusFrontmostWindow.settingsPublisher()
         )
         .receive(on: DispatchQueue.main)
@@ -63,6 +67,8 @@ extension FocusManagerSettings: SettingsProtocol {
         focusPreviousWorkspaceApp = appSettings.focusPreviousWorkspaceApp
         focusNextWorkspaceWindow = appSettings.focusNextWorkspaceWindow
         focusPreviousWorkspaceWindow = appSettings.focusPreviousWorkspaceWindow
+        focusNextScreen = appSettings.focusNextScreen
+        focusPreviousScreen = appSettings.focusPreviousScreen
         focusFrontmostWindow = appSettings.focusFrontmostWindow ?? false
         observe()
     }
@@ -78,6 +84,8 @@ extension FocusManagerSettings: SettingsProtocol {
         appSettings.focusPreviousWorkspaceApp = focusPreviousWorkspaceApp
         appSettings.focusNextWorkspaceWindow = focusNextWorkspaceWindow
         appSettings.focusPreviousWorkspaceWindow = focusPreviousWorkspaceWindow
+        appSettings.focusNextScreen = focusNextScreen
+        appSettings.focusPreviousScreen = focusPreviousScreen
         appSettings.focusFrontmostWindow = focusFrontmostWindow
     }
 }

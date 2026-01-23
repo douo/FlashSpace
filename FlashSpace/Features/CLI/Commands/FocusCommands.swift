@@ -37,6 +37,14 @@ final class FocusCommands: CommandExecutor {
             focusManager.previousWorkspaceWindow()
             return CommandResponse(success: true)
 
+        case .focusNextScreen:
+            focusManager.focusNextScreen()
+            return CommandResponse(success: true)
+
+        case .focusPreviousScreen:
+            focusManager.focusPreviousScreen()
+            return CommandResponse(success: true)
+
         default:
             return nil
         }

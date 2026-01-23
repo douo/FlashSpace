@@ -28,6 +28,8 @@ struct AppSettings: Codable {
     var focusPreviousWorkspaceApp: AppHotKey?
     var focusNextWorkspaceWindow: AppHotKey?
     var focusPreviousWorkspaceWindow: AppHotKey?
+    var focusNextScreen: AppHotKey?
+    var focusPreviousScreen: AppHotKey?
     var focusFrontmostWindow: Bool?
 
     // Gestures

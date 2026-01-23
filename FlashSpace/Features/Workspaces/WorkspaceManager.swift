@@ -209,7 +209,10 @@ final class WorkspaceManager: ObservableObject {
             .filter {
                 let onDisplay = $0.isOnAnyDisplay(displays)
                 if onDisplay {
-                    Logger.log("[Manager] Marking for HIDE: \($0.localizedName ?? "Unknown") (Target Displays: \(displays), App Displays: \($0.allDisplays))")
+                    Logger.log(
+                        "[Manager] Marking for HIDE: \($0.localizedName ?? "Unknown") " +
+                            "(Target Displays: \(displays), App Displays: \($0.allDisplays))"
+                    )
                 }
                 return onDisplay
             }
@@ -352,32 +355,36 @@ final class WorkspaceManager: ObservableObject {
 extension WorkspaceManager {
     func activateWorkspace(_ workspace: Workspace, setFocus: Bool, retryCount: Int = 0) {
         var displays = workspace.displays
-        
         // Fix for "No Running Apps" issue in Dynamic Mode:
         // If apps are hidden, they have no display coordinates, so displays is empty.
         // We must allow activation to proceed so showApps() can unhide them.
         // We fallback to the current main display to have a "stage" to act on.
         if workspace.isDynamic, displays.isEmpty, workspace.apps.isNotEmpty {
-             if let lastDisplay = workspace.apps.compactMap({ displayManager.lastKnownDisplay(for: $0) }).first {
-                 Logger.log("Dynamic workspace has hidden apps. Smart Fallback -> Last known display: '\(lastDisplay)'")
-                 displays = [lastDisplay]
-             } else {
-                 if retryCount < 3 {
-                     // Unhide apps to force macOS to report their true location
-                     showApps(in: workspace, setFocus: false, on: [])
-                     
-                     // Retry activation after a short delay
-                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                         self.activateWorkspace(workspace, setFocus: setFocus, retryCount: retryCount + 1)
-                     }
-                     return
-                 } else {
-                     Logger.log("Dynamic workspace has hidden apps. Retries exhausted. Fallback to main display.")
-                     if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
-                         displays = [fallback]
-                     }
-                 }
-             }
+            if let lastDisplay = workspace.apps
+                .compactMap({ displayManager.lastKnownDisplay(for: $0) }).first {
+                Logger.log(
+                    "Dynamic workspace has hidden apps. Smart Fallback -> Last known display: '\(lastDisplay)'"
+                )
+                displays = [lastDisplay]
+            } else {
+                if retryCount < 3 {
+                    // Unhide apps to force macOS to report their true location
+                    showApps(in: workspace, setFocus: false, on: [])
+
+                    // Retry activation after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        self.activateWorkspace(workspace, setFocus: setFocus, retryCount: retryCount + 1)
+                    }
+                    return
+                } else {
+                    Logger.log(
+                        "Dynamic workspace has hidden apps. Retries exhausted. Fallback to main display."
+                    )
+                    if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
+                        displays = [fallback]
+                    }
+                }
+            }
         }
 
         Logger.log("")

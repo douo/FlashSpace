@@ -30,6 +30,8 @@ enum CommandRequest: Codable {
     case focusPreviousWindow
     case focusNextApp
     case focusPreviousApp
+    case focusNextScreen
+    case focusPreviousScreen
 
     case createProfile(name: String, copy: Bool, activate: Bool)
     case deleteProfile(name: String)

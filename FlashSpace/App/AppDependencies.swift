@@ -86,7 +86,8 @@ struct AppDependencies {
             workspaceRepository: workspaceRepository,
             workspaceManager: workspaceManager,
             focusManagerSettings: focusManagerSettings,
-            floatingAppsSettings: floatingAppsSettings
+            floatingAppsSettings: floatingAppsSettings,
+            displayManager: displayManager
         )
         self.hotKeysManager = HotKeysManager(
             hotKeysMonitor: GlobalShortcutMonitor.shared,

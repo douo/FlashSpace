@@ -32,6 +32,12 @@ struct FocusCommand: ParsableCommand {
     @Flag(help: "Focus the previous workspace window")
     var prevWindow = false
 
+    @Flag(help: "Focus the next screen")
+    var nextScreen = false
+
+    @Flag(help: "Focus the previous screen")
+    var prevScreen = false
+
     func run() throws {
         if let focusDirection {
             sendCommand(.focusWindow(direction: focusDirection))
@@ -43,6 +49,10 @@ struct FocusCommand: ParsableCommand {
             sendCommand(.focusNextWindow)
         } else if prevWindow {
             sendCommand(.focusPreviousWindow)
+        } else if nextScreen {
+            sendCommand(.focusNextScreen)
+        } else if prevScreen {
+            sendCommand(.focusPreviousScreen)
         } else {
             fallbackToHelp()
         }
