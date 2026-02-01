@@ -90,6 +90,14 @@ final class DisplayManager: ObservableObject {
 
         let pids = runningApps.map(\.processIdentifier)
         let windows = WindowInfoUtils.getWindows(for: pids)
+        
+        // 调试日志：显示找到的窗口和屏幕信息
+        Logger.log("[CG] Looking for PIDs: \(pids), found \(windows.count) windows")
+        for window in windows {
+            let display = window.frame.getDisplay()
+            Logger.log("[CG] Window pid:\(window.pid) frame:\(window.frame) -> display: \(display ?? "nil")")
+        }
+        Logger.log("[CG] Available screens: \(NSScreen.screens.map { "\($0.localizedName ?? ""): \($0.normalizedFrame)" })")
 
         let displays = runningApps
             .compactMap { $0.getDisplay(using: windows) }
@@ -97,6 +105,8 @@ final class DisplayManager: ObservableObject {
 
         if displays.isNotEmpty {
             Logger.log("[Display] Resolved via CoreGraphics: \(displays)")
+        } else {
+            Logger.log("[Display] CoreGraphics failed to resolve any display")
         }
 
         return displays

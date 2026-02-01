@@ -37,6 +37,7 @@ struct Workspace: Identifiable, Codable, Hashable {
 extension Workspace {
     var displays: Set<DisplayName> {
         if NSScreen.screens.count == 1 {
+            Logger.log("[Workspace] \(name): using Single Screen strategy")
             return [NSScreen.main?.localizedName ?? ""]
         } else if isDynamic {
             // TODO: After disconnecting a display, the detection may not work correctly.
@@ -44,11 +45,24 @@ extension Workspace {
             // prevents from detecting the correct display.
             //
             // The workaround is to activate the app manually to update its frame.
-            return NSWorkspace.shared.runningRegularApps
+
+            // 首先尝试使用 Accessibility API（最准确，但无法获取全屏空间的窗口）
+            let axDisplays = NSWorkspace.shared.runningRegularApps
                 .filter { apps.containsApp($0) }
                 .flatMap(\.allDisplays)
                 .asSet
+
+            // 如果 Accessibility API 返回空（可能是全屏应用），使用 CoreGraphics API 作为 fallback
+            // CoreGraphics 可以获取所有空间的窗口信息，包括全屏空间
+            if axDisplays.isEmpty {
+                Logger.log("[Workspace] \(name): using Dynamic (CoreGraphics) strategy")
+                return displayManager.resolveDisplaysForApps(apps)
+            }
+
+            Logger.log("[Workspace] \(name): using Dynamic (Accessibility) strategy")
+            return axDisplays
         } else {
+            Logger.log("[Workspace] \(name): using Static (Config) strategy")
             return [displayManager.resolveDisplay(display)]
         }
     }
@@ -72,6 +86,25 @@ extension Workspace {
 
     var isDynamic: Bool {
         AppDependencies.shared.workspaceSettings.displayMode == .dynamic
+    }
+
+    /// 检查工作区的应用是否有任何一个在运行
+    var hasRunningApps: Bool {
+        let runningBundleIds = NSWorkspace.shared.runningRegularApps
+            .compactMap(\.bundleIdentifier)
+            .asSet
+        return apps.contains { runningBundleIds.contains($0.bundleIdentifier) }
+    }
+
+    /// 检查工作区是否可以激活
+    /// 对于动态工作区：如果显示器为空，且没有应用在运行，且不自动打开应用，则不能激活
+    var canActivate: Bool {
+        if isDynamic, displays.isEmpty,
+           !hasRunningApps,
+           openAppsOnActivation != true {
+            return false
+        }
+        return true
     }
 
     private var displayManager: DisplayManager {

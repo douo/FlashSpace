@@ -20,10 +20,14 @@ enum WindowInfoUtils {
         }
 
         let pidsSet = Set(pids)
-        // Global visual coordinate system has (0,0) at top-left of the primary screen for Quartz (CGWindowList).
-        // Cocoa uses (0,0) at bottom-left of the primary screen.
-        // We need to flip the Y coordinate.
-        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? 0
+        let screens = NSScreen.screens
+        
+        // Quartz 坐标系: (0,0) 在**主屏幕**左上角，Y 向下增加
+        // Cocoa 坐标系: (0,0) 在**主屏幕**左下角，Y 向上增加
+        // 注意：NSScreen.screens[0] 是主屏幕（Quartz 坐标系的基准屏幕）
+        // 这与 NSScreen.normalizedFrame 的实现保持一致
+        guard let mainScreen = screens.first else { return [] }
+        let mainScreenHeight = mainScreen.frame.height
 
         return list.compactMap { info -> WindowInfo? in
             guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0,
@@ -34,10 +38,11 @@ enum WindowInfoUtils {
                   bounds.width > 10, bounds.height > 10
             else { return nil }
 
-            // Convert raw Quartz bounds (Y-down) to Cocoa bounds (Y-up)
+            // 将 Quartz 坐标（Y-down）转换为 Cocoa 坐标（Y-up）
+            // cocoaY = mainScreenHeight - (quartzY + windowHeight)
             var cocoaFrame = bounds
             cocoaFrame.origin.y = mainScreenHeight - bounds.maxY
-
+            
             return WindowInfo(
                 id: info[kCGWindowNumber as String] as? CGWindowID ?? 0,
                 pid: pid,
@@ -46,3 +51,4 @@ enum WindowInfoUtils {
         }
     }
 }
+

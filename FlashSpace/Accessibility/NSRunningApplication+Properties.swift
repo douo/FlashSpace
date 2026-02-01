@@ -26,7 +26,10 @@ extension NSRunningApplication {
 
     var allDisplays: Set<DisplayName> {
         allWindows
-            .filter { !$0.window.isMinimized } // Ignore minimized windows to prevent phantom active displays
+            // 忽略最小化的窗口，防止出现“幽灵”活动显示
+            .filter { !$0.window.isMinimized }
+            // 很多应用会有不可见的辅助窗口（比如 1x1 像素的监测窗口，或者透明的 tooltip），
+            // 这些窗口可能会随机出现在某个屏幕上。如果不过滤，会导致工作区随机“跳”到错误的屏幕。
             .filter { $0.frame.width > 10 && $0.frame.height > 10 }
             .compactMap { $0.frame.getDisplay() }
             .asSet

@@ -366,30 +366,11 @@ extension WorkspaceManager {
     func activateWorkspace(_ workspace: Workspace, setFocus: Bool) {
         var displays = workspace.displays
 
-        // ============================================================================
-        // DYNAMIC WORKSPACE DISPLAY RESOLUTION
-        // ============================================================================
-        // 问题背景：
-        // Dynamic Workspace 的 displays 属性依赖于其 apps 的窗口位置。
-        // 当 apps 被隐藏或处于 macOS 原生全屏时，Accessibility API 无法获取窗口位置，
-        // 导致 workspace.displays 为空，无法确定应该在哪个屏幕上激活工作区。
-        //
-        // 解决方案：
-        // 使用 CoreGraphics API (CGWindowListCopyWindowInfo) 快速查询窗口位置，
-        // 该 API 可以获取所有空间的窗口（包括全屏空间），且性能优异。
-        // 如果 CoreGraphics 也无法解析（例如应用刚启动），则 fallback 到光标所在屏幕。
-        // ============================================================================
+        // 如果 displays 仍为空（CoreGraphics 也无法解析），fallback 到光标所在屏幕
         if workspace.isDynamic, displays.isEmpty, workspace.apps.isNotEmpty {
-            let resolvedDisplays = displayManager.resolveDisplaysForApps(workspace.apps)
-
-            if resolvedDisplays.isNotEmpty {
-                displays = resolvedDisplays
-            } else {
-                // Fallback: 使用光标所在屏幕或主屏幕
-                Logger.log("[Display] CoreGraphics failed, fallback to cursor/main screen")
-                if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
-                    displays = [fallback]
-                }
+            Logger.log("[Display] displays still empty, fallback to cursor/main screen")
+            if let fallback = displayManager.getCursorScreen() ?? NSScreen.main?.localizedName {
+                displays = [fallback]
             }
         }
 

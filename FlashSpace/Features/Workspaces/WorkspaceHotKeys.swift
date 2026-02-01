@@ -49,29 +49,15 @@ final class WorkspaceHotKeys {
         let action = { [weak self] in
             guard let self, let updatedWorkspace = workspaceRepository.findWorkspace(with: workspace.id) else { return }
 
-            if updatedWorkspace.isDynamic {
-                Logger.log("[HotKey] Activating '\(updatedWorkspace.name)' (Dynamic)")
-                Logger.log("[HotKey] Workspace Displays: \(updatedWorkspace.displays)")
-                Logger.log("[HotKey] Open Apps On Activation: \(updatedWorkspace.openAppsOnActivation ?? false)")
-                Logger.log("[HotKey] Apps Count: \(workspace.apps.count)")
-            }
-
-            let runningBundleIds = NSWorkspace.shared.runningRegularApps.compactMap(\.bundleIdentifier)
-            let isAnyAppRunning = workspace.apps.contains { runningBundleIds.contains($0.bundleIdentifier) }
-
-            if updatedWorkspace.isDynamic, updatedWorkspace.displays.isEmpty,
-               !isAnyAppRunning,
-               updatedWorkspace.openAppsOnActivation != true {
-                Logger.log("[HotKey] Activation Aborted: No apps to show on any display.")
+            if updatedWorkspace.canActivate {
+                workspaceManager.activateWorkspace(updatedWorkspace, setFocus: true)
+            } else {
                 Toast.showWith(
                     icon: "square.stack.3d.up",
                     message: "\(workspace.name) - No Running Apps To Show",
                     textColor: .gray
                 )
-                return
             }
-
-            workspaceManager.activateWorkspace(updatedWorkspace, setFocus: true)
         }
 
         return (shortcut, action)
