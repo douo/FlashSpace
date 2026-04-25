@@ -19,11 +19,15 @@ enum SpaceControl {
     private static var settings: SpaceControlSettings { AppDependencies.shared.spaceControlSettings }
     private static var focusedAppBeforeShow: NSRunningApplication?
 
-    static func getHotKey() -> (AppHotKey, () -> ())? {
+    static func getHotKey() -> RecordedHotKey? {
         guard isEnabled else { return nil }
 
         if let spaceControlHotKey = settings.showSpaceControl {
-            return (spaceControlHotKey, toggle)
+            return RecordedHotKey(
+                name: .toggleSpaceControl,
+                hotKey: spaceControlHotKey,
+                action: toggle
+            )
         }
 
         return nil
@@ -146,8 +150,8 @@ enum SpaceControl {
             workspaces = workspaces.skipWithoutRunningApps()
         }
 
-        if workspaces.count < 2 {
-            Alert.showOkAlert(title: "Space Control", message: "You need at least 2 workspaces to use Space Control.")
+        if workspaces.isEmpty {
+            Alert.showOkAlert(title: "Space Control", message: "You need at least 1 workspace to use Space Control.")
             return false
         }
 

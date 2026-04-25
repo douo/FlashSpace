@@ -9,7 +9,9 @@ struct AppSettings: Codable {
     // General
     var checkForUpdatesAutomatically: Bool?
     var showFlashSpace: AppHotKey?
+    var toggleFlashSpace: AppHotKey?
     var showFloatingNotifications: Bool?
+    var pauseResumeFlashSpace: AppHotKey?
 
     // Menu Bar
     var showMenuBarTitle: Bool?
@@ -50,10 +52,13 @@ struct AppSettings: Codable {
     var centerCursorOnWorkspaceChange: Bool?
     var changeWorkspaceOnAppAssign: Bool?
     var activeWorkspaceOnFocusChange: Bool?
+    var autoAssignAppsToWorkspaces: Bool?
+    var autoAssignAlreadyAssignedApps: Bool?
     var skipEmptyWorkspacesOnSwitch: Bool?
     var keepUnassignedAppsOnSwitch: Bool?
     var restoreHiddenAppsOnSwitch: Bool?
     var enableWorkspaceTransitions: Bool?
+    var showRecentWorkspaceWhenActivatedTwice: Bool?
     var workspaceTransitionDuration: Double?
     var workspaceTransitionDimming: Double?
 
@@ -75,6 +80,7 @@ struct AppSettings: Codable {
     var switchWorkspaceWhenPipCloses: Bool?
     var pipApps: [PipApp]?
     var pipScreenCornerOffset: Int?
+    var cornerHiddenApps: [CornerHiddenApp]?
 
     // Floating apps
     var floatingApps: [MacApp]?
@@ -91,6 +97,15 @@ struct AppSettings: Codable {
     var spaceControlHideEmptyWorkspaces: Bool?
     var spaceControlUpdateScreenshotsOnOpen: Bool?
     var spaceControlNumberOfColumns: Int?
+
+    // Workspace Switcher
+    var enableWorkspaceSwitcher: Bool?
+    var showWorkspaceSwitcher: AppHotKey?
+    var workspaceSwitcherShowScreenshots: Bool?
+    var workspaceSwitcherVisibleWorkspaces: Int?
+    var workspaceSwitcherSortByLastActivation: Bool?
+    // swiftlint:disable:next identifier_name
+    var workspaceSwitcherCurrentDisplayWorkspaces: Bool?
 
     // Integrations
     var enableIntegrations: Bool?

@@ -5,8 +5,6 @@
 //  Copyright © 2025 Wojciech Kulik. All rights reserved.
 //
 
-import ShortcutRecorder
-
 struct AppDependencies {
     static let shared = AppDependencies()
 
@@ -17,10 +15,10 @@ struct AppDependencies {
     let workspaceScreenshotManager: WorkspaceScreenshotManager
     let workspaceTransitionManager: WorkspaceTransitionManager
     let pictureInPictureManager: PictureInPictureManager
+    let wallpaperService = WallpaperService()
 
     let floatingAppsHotKeys: FloatingAppsHotKeys
 
-    let hotKeysMonitor: HotKeysMonitorProtocol = GlobalShortcutMonitor.shared
     let hotKeysManager: HotKeysManager
 
     let focusManager: FocusManager
@@ -32,8 +30,10 @@ struct AppDependencies {
     let gesturesSettings = GesturesSettings()
     let focusManagerSettings = FocusManagerSettings()
     let workspaceSettings = WorkspaceSettings()
+    let pictureInPictureSettings = PictureInPictureSettings()
     let floatingAppsSettings = FloatingAppsSettings()
     let spaceControlSettings = SpaceControlSettings()
+    let workspaceSwitcherSettings = WorkspaceSwitcherSettings()
     let integrationsSettings = IntegrationsSettings()
     let profileSettings = ProfileSettings()
 
@@ -49,8 +49,10 @@ struct AppDependencies {
             gesturesSettings: gesturesSettings,
             focusManagerSettings: focusManagerSettings,
             workspaceSettings: workspaceSettings,
+            pictureInPictureSettings: pictureInPictureSettings,
             floatingAppsSettings: floatingAppsSettings,
             spaceControlSettings: spaceControlSettings,
+            workspaceSwitcherSettings: workspaceSwitcherSettings,
             integrationsSettings: integrationsSettings,
             profileSettings: profileSettings
         )
@@ -90,7 +92,6 @@ struct AppDependencies {
             displayManager: displayManager
         )
         self.hotKeysManager = HotKeysManager(
-            hotKeysMonitor: GlobalShortcutMonitor.shared,
             workspaceHotKeys: workspaceHotKeys,
             floatingAppsHotKeys: floatingAppsHotKeys,
             focusManager: focusManager,

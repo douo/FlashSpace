@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import AVFoundation
 import Combine
 import SwiftUI
 
@@ -28,19 +27,9 @@ final class SpaceControlViewModel: ObservableObject {
     @Published private(set) var tileSize: CGSize = .zero
 
     var wallpaperImage: NSImage? {
-        if let screen = NSScreen.main,
-           let wallpaperURL = NSWorkspace.shared.desktopImageURL(for: screen) {
-            if wallpaperURL.lastPathComponent == "DefaultDesktop.heic" {
-                return getVideoWallpaperFromPlist() ?? NSImage(contentsOf: wallpaperURL)
-            } else {
-                return NSImage(contentsOf: wallpaperURL)
-            }
-        }
-
-        return nil
+        wallpaperService.getWallpaper()
     }
 
-    private var cachedWallpaper: (path: String, image: NSImage)?
     private var cancellables = Set<AnyCancellable>()
 
     private let settings = AppDependencies.shared.spaceControlSettings
@@ -48,6 +37,7 @@ final class SpaceControlViewModel: ObservableObject {
     private let workspaceManager = AppDependencies.shared.workspaceManager
     private let screenshotManager = AppDependencies.shared.workspaceScreenshotManager
     private let displayManager = AppDependencies.shared.displayManager
+    private let wallpaperService = AppDependencies.shared.wallpaperService
 
     init() {
         refresh()
@@ -67,7 +57,7 @@ final class SpaceControlViewModel: ObservableObject {
 
     func refresh() {
         let activeWorkspaceIds = workspaceManager.activeWorkspace.map(\.value.id).asSet
-        let mainDisplay = NSScreen.main?.localizedName ?? ""
+        let mainDisplay = DisplayName.current
 
         var sourceWorkspaces = workspaceRepository.workspaces
             .filter { !settings.spaceControlCurrentDisplayWorkspaces || $0.isOnTheCurrentScreen }
@@ -150,6 +140,11 @@ final class SpaceControlViewModel: ObservableObject {
         let width = screenFrame.width / CGFloat(numberOfColumns) - 120.0
         let height = screenFrame.height / CGFloat(numberOfRows) - 120.0
 
+        guard workspaces.count > 1 else {
+            tileSize = CGSize(width: width / 2.0, height: height / 2.0)
+            return
+        }
+
         let firstScreenshot = workspaces
             .lazy
             .compactMap { $0.screenshotData.flatMap(NSImage.init(data:)) }
@@ -204,84 +199,6 @@ final class SpaceControlViewModel: ObservableObject {
         if let workspace {
             SpaceControl.hide()
             workspaceManager.activateWorkspace(workspace, setFocus: true)
-        }
-    }
-
-    private func getVideoWallpaperFromPlist() -> NSImage? {
-        guard let filePath = getVideoWallpaperPath() else {
-            return nil
-        }
-
-        if let cachedWallpaper, cachedWallpaper.path == filePath {
-            return cachedWallpaper.image
-        }
-
-        guard let firstFrame = getFirstFrame(from: URL(filePath: filePath)) else {
-            return nil
-        }
-
-        cachedWallpaper = (path: filePath, image: firstFrame)
-        return firstFrame
-    }
-
-    private func getVideoWallpaperPath() -> String? {
-        do {
-            let infoPlist = "~/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
-            let plistURL = URL(fileURLWithPath: infoPlist)
-            let data = try Data(contentsOf: plistURL)
-
-            guard let plistDictionary = try PropertyListSerialization.propertyList(
-                from: data,
-                options: [],
-                format: nil
-            ) as? [String: AnyObject] else { return nil }
-
-            guard
-                let allDisplays = plistDictionary["AllSpacesAndDisplays"] as? NSDictionary,
-                let idle = allDisplays["Desktop"] as? NSDictionary,
-                let content = idle["Content"] as? NSDictionary,
-                let choices = content["Choices"] as? NSArray,
-                choices.count > 0,
-                let choicesDict = choices[0] as? NSDictionary,
-                let encodedData = choicesDict["Configuration"] as? Data,
-                encodedData.isNotEmpty else {
-                return nil
-            }
-
-            guard let configurationPlist = try PropertyListSerialization.propertyList(
-                from: encodedData,
-                options: [],
-                format: nil
-            ) as? [String: AnyObject] else { return nil }
-
-            guard let assetID = configurationPlist["assetID"] as? String else {
-                return nil
-            }
-
-            return "~/Library/Application Support/com.apple.wallpaper/aerials/videos/\(assetID).mov"
-        } catch {
-            Logger.log(error)
-            return nil
-        }
-    }
-
-    private func getFirstFrame(from url: URL) -> NSImage? {
-        guard FileManager.default.fileExists(atPath: url.path) else {
-            Logger.log("Wallpaper video file does not exist at path: \(url.path)")
-            return nil
-        }
-
-        let asset = AVAsset(url: url)
-        let imageGenerator = AVAssetImageGenerator(asset: asset)
-        imageGenerator.appliesPreferredTrackTransform = true
-
-        do {
-            let time = CMTime(seconds: 0.0, preferredTimescale: 600)
-            let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
-            return NSImage(cgImage: cgImage, size: .zero)
-        } catch {
-            Logger.log(error)
-            return nil
         }
     }
 }

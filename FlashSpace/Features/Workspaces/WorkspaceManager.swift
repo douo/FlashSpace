@@ -4,6 +4,7 @@
 //  Created by Wojciech Kulik on 19/01/2025.
 //  Copyright © 2025 Wojciech Kulik. All rights reserved.
 //
+// swiftlint:disable file_length
 
 import AppKit
 import Combine
@@ -18,6 +19,7 @@ struct ActiveWorkspace {
     let display: DisplayName
 }
 
+// swiftlint:disable:next type_body_length
 final class WorkspaceManager: ObservableObject {
     @Published private(set) var activeWorkspaceDetails: ActiveWorkspace?
 
@@ -25,6 +27,7 @@ final class WorkspaceManager: ObservableObject {
     private(set) var activeWorkspace: [DisplayName: Workspace] = [:]
     private(set) var mostRecentWorkspace: [DisplayName: Workspace] = [:]
     private(set) var lastWorkspaceActivation = Date.distantPast
+    private(set) var workspaceActivationTimes: [WorkspaceID: Date] = [:]
 
     private var cancellables = Set<AnyCancellable>()
     private var observeFocusCancellable: AnyCancellable?
@@ -100,6 +103,7 @@ final class WorkspaceManager: ObservableObject {
             .compactMap { $0.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication }
             .filter { $0.activationPolicy == .regular }
             .sink { [weak self] application in
+                self?.invalidateInactiveWorkspaces()
                 self?.rememberLastFocusedApp(application, retry: true)
             }
     }
@@ -118,7 +122,7 @@ final class WorkspaceManager: ObservableObject {
         }
 
         // Use the app's actual display, or fallback to main screen
-        let focusedDisplay = application.display ?? NSScreen.main?.localizedName ?? ""
+        let focusedDisplay = application.display ?? .current
 
         if let activeWorkspace = activeWorkspace[focusedDisplay], activeWorkspace.apps.containsApp(application) {
             updateLastFocusedApp(application.toMacApp, in: activeWorkspace)
@@ -176,6 +180,7 @@ final class WorkspaceManager: ObservableObject {
                 }
 
                 pictureInPictureManager.showPipAppIfNeeded(app: app)
+                pictureInPictureManager.showCornerHiddenAppIfNeeded(app: app)
             }
 
             Logger.log("FOCUS: \(toFocus?.localizedName ?? "")")
@@ -230,7 +235,8 @@ final class WorkspaceManager: ObservableObject {
         for app in appsToHide {
             Logger.log("HIDE: \(app.localizedName ?? "")")
 
-            if !pictureInPictureManager.hidePipAppIfNeeded(app: app) {
+            if !pictureInPictureManager.hideCornerHiddenAppIfNeeded(app: app),
+               !pictureInPictureManager.hidePipAppIfNeeded(app: app) {
                 app.hide()
             }
         }
@@ -297,6 +303,10 @@ final class WorkspaceManager: ObservableObject {
         Integrations.runOnActivateIfNeeded(workspace: activeWorkspaceDetails!)
     }
 
+    private func updateLastActivationTime(for workspace: Workspace) {
+        workspaceActivationTimes[workspace.id] = Date()
+    }
+
     private func openAppsIfNeeded(in workspace: Workspace) {
         guard workspace.openAppsOnActivation == true else { return }
 
@@ -305,7 +315,10 @@ final class WorkspaceManager: ObservableObject {
             .asSet
 
         workspace.apps
-            .filter { !runningBundleIds.contains($0.bundleIdentifier) }
+            .filter {
+                !runningBundleIds.contains($0.bundleIdentifier) &&
+                    $0.autoOpen == true
+            }
             .compactMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0.bundleIdentifier) }
             .forEach { appUrl in
                 Logger.log("Open App: \(appUrl)")
@@ -364,6 +377,11 @@ final class WorkspaceManager: ObservableObject {
 // MARK: - Workspace Actions
 extension WorkspaceManager {
     func activateWorkspace(_ workspace: Workspace, setFocus: Bool) {
+        guard !workspaceSettings.isPaused else {
+            Logger.log("Workspace management is paused - skipping activation")
+            return
+        }
+
         var displays = workspace.displays
 
         // 如果 displays 仍为空（CoreGraphics 也无法解析），fallback 到光标所在屏幕
@@ -406,6 +424,7 @@ extension WorkspaceManager {
         workspaceTransitionManager.showTransitionIfNeeded(for: workspace, on: displays)
 
         rememberHiddenApps(workspaceToActivate: workspace.id)
+        updateLastActivationTime(for: workspace)
         updateActiveWorkspace(workspace, on: displays)
         openAppsIfNeeded(in: workspace)
         showApps(in: workspace, setFocus: setFocus, on: displays)
@@ -464,7 +483,7 @@ extension WorkspaceManager {
     }
 
     func hideAll() {
-        guard let display = NSScreen.main?.localizedName else { return }
+        guard let display = DisplayName.currentOptional else { return }
 
         focusedWindowTracker.stopTracking()
         defer { focusedWindowTracker.startTracking() }
@@ -502,7 +521,7 @@ extension WorkspaceManager {
     }
 
     func showUnassignedApps() {
-        guard let display = NSScreen.main?.localizedName else { return }
+        guard let display = DisplayName.currentOptional else { return }
 
         Logger.log("")
         Logger.log("")
@@ -541,7 +560,7 @@ extension WorkspaceManager {
     func activateWorkspace(next: Bool, skipEmpty: Bool, loop: Bool) {
         let screen = workspaceSettings.switchWorkspaceOnCursorScreen
             ? displayManager.getCursorScreen()
-            : NSScreen.main?.localizedName
+            : DisplayName.currentOptional
 
         guard let screen else { return }
 
@@ -596,5 +615,41 @@ extension WorkspaceManager {
 
     func updateLastFocusedApp(_ app: MacApp, in workspace: Workspace) {
         lastFocusedApp[profilesRepository.selectedProfile.id, default: [:]][workspace.id] = app
+    }
+
+    func invalidateInactiveWorkspaces() {
+        guard workspaceSettings.displayMode == .dynamic else { return }
+
+        activeWorkspace = activeWorkspace.filter { display, workspace in
+            let isValid = workspace.displays.contains(display)
+            if !isValid {
+                Logger.log("Invalidating workspace: \(workspace.name) on display: \(display)")
+            }
+            return isValid
+        }
+    }
+
+    func pauseWorkspaceManagement() {
+        guard !workspaceSettings.isPaused else { return }
+
+        Logger.log("Pausing workspace management")
+        workspaceSettings.isPaused = true
+        focusedWindowTracker.stopTracking()
+    }
+
+    func resumeWorkspaceManagement() {
+        guard workspaceSettings.isPaused else { return }
+
+        Logger.log("Resuming workspace management")
+        workspaceSettings.isPaused = false
+        focusedWindowTracker.startTracking()
+    }
+
+    func togglePauseWorkspaceManagement() {
+        if workspaceSettings.isPaused {
+            resumeWorkspaceManagement()
+        } else {
+            pauseWorkspaceManagement()
+        }
     }
 }

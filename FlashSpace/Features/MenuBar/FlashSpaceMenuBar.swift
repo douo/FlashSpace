@@ -15,19 +15,40 @@ struct FlashSpaceMenuBar: Scene {
     @StateObject private var profilesRepository = AppDependencies.shared.profilesRepository
     @StateObject private var workspaceRepository = AppDependencies.shared.workspaceRepository
 
+    @State var menuBarId = UUID()
+
     var body: some Scene {
         MenuBarExtra(isInserted: .constant(true)) {
             Text("FlashSpace v\(AppConstants.version)")
+
+            Button(settingsRepository.workspaceSettings.isPaused ? "Resume" : "Pause") {
+                workspaceManager.togglePauseWorkspaceManagement()
+                menuBarId = UUID()
+            }
+            .keyboardShortcut(settingsRepository.generalSettings.pauseResumeFlashSpace?.toKeyboardShortcut)
+            .id(menuBarId)
+            .onReceive(settingsRepository.workspaceSettings.$isPaused) { _ in
+                menuBarId = UUID()
+            }
+
+            Divider()
 
             Button("Open") {
                 openWindow(id: "main")
                 NSApp.activate(ignoringOtherApps: true)
             }
+            .keyboardShortcut(
+                settingsRepository.generalSettings.showFlashSpace?.toKeyboardShortcut
+                    ?? settingsRepository.generalSettings.toggleFlashSpace?.toKeyboardShortcut
+            )
 
             if settingsRepository.spaceControlSettings.enableSpaceControl {
                 Button("Space Control") {
                     SpaceControl.show()
                 }
+                .keyboardShortcut(
+                    settingsRepository.spaceControlSettings.showSpaceControl?.toKeyboardShortcut
+                )
             }
 
             Divider()
@@ -73,9 +94,9 @@ struct FlashSpaceMenuBar: Scene {
             Divider()
 
             Button("Donate") {
-                if let url = URL(string: "https://github.com/sponsors/wojciech-kulik") {
-                    NSWorkspace.shared.open(url)
-                }
+                SettingsNavigationManager.shared.selectedTab = "Donate"
+                openWindow(id: "settings")
+                NSApp.activate(ignoringOtherApps: true)
             }
 
             Button("Project Website") {

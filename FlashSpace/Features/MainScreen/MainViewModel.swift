@@ -7,7 +7,6 @@
 
 import AppKit
 import Combine
-import SwiftUI
 
 final class MainViewModel: ObservableObject {
     @Published var workspaces: [Workspace] = [] {
@@ -43,11 +42,23 @@ final class MainViewModel: ObservableObject {
     }
 
     @Published var isOpenAppsOnActivationEnabled = false {
-        didSet { saveWorkspace() }
+        didSet {
+            if isOpenAppsOnActivationEnabled != oldValue, !loadingWorkspace, let selectedWorkspaceId {
+                workspaceRepository.setAutoOpenForApps(isOpenAppsOnActivationEnabled, in: selectedWorkspaceId)
+                updateApps()
+            }
+
+            if !isOpenAppsOnActivationEnabled {
+                isEditingApps = false
+            }
+
+            saveWorkspace()
+        }
     }
 
     @Published var isSymbolPickerPresented = false
     @Published var isInputDialogPresented = false
+    @Published var isEditingApps = false
     @Published var userInput = ""
 
     var focusAppOptions: [MacApp] {
@@ -65,32 +76,24 @@ final class MainViewModel: ObservableObject {
 
     var selectedWorkspaces: Set<Workspace> = [] {
         didSet {
-            selectedWorkspace = selectedWorkspaces.count == 1
-                ? selectedWorkspaces.first
-                : nil
+            loadingWorkspace = true
 
             // To avoid warnings
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [self] in
-                if selectedWorkspaces.count == 1,
-                   selectedWorkspaces.first?.id != oldValue.first?.id {
+                if (selectedWorkspaces.count == 1 && selectedWorkspaces.first?.id != oldValue.first?.id) ||
+                    selectedWorkspaces.count != 1 {
                     selectedApps = []
-                } else if selectedWorkspaces.count != 1 {
-                    selectedApps = []
+                    isEditingApps = false
                 }
+
+                updateWorkspaceDetails()
                 objectWillChange.send()
             }
         }
     }
 
-    private(set) var selectedWorkspace: Workspace? {
-        didSet {
-            guard selectedWorkspace != oldValue else { return }
-
-            // To avoid warnings
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                self.updateSelectedWorkspace()
-            }
-        }
+    var selectedWorkspaceId: WorkspaceID? {
+        selectedWorkspaces.count == 1 ? selectedWorkspaces.first?.id : nil
     }
 
     var screens: [String] {
@@ -113,7 +116,7 @@ final class MainViewModel: ObservableObject {
 
     init() {
         self.workspaces = workspaceRepository.workspaces
-        self.workspaceDisplay = NSScreen.main?.localizedName ?? ""
+        self.workspaceDisplay = .current
 
         observe()
     }
@@ -136,55 +139,65 @@ final class MainViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    private func updateSelectedWorkspace() {
+    private func updateWorkspaceDetails() {
+        let selectedWorkspace = selectedWorkspaces.count == 1 ? selectedWorkspaces.first : nil
+
         loadingWorkspace = true
         defer { loadingWorkspace = false }
 
         workspaceName = selectedWorkspace?.name ?? ""
         workspaceShortcut = selectedWorkspace?.activateShortcut
         workspaceAssignShortcut = selectedWorkspace?.assignAppShortcut
-        workspaceDisplay = selectedWorkspace?.display ?? NSScreen.main?.localizedName ?? ""
-        workspaceApps = selectedWorkspace?.apps
+        workspaceDisplay = selectedWorkspace?.display ?? .current
         workspaceAppToFocus = selectedWorkspace?.appToFocus ?? AppConstants.lastFocusedOption
         workspaceSymbolIconName = selectedWorkspace?.symbolIconName
         isOpenAppsOnActivationEnabled = selectedWorkspace?.openAppsOnActivation ?? false
-        selectedWorkspace.flatMap { selectedWorkspaces = [$0] }
+
+        updateApps()
     }
 
     private func reloadWorkspaces() {
         workspaces = workspaceRepository.workspaces
-        if let selectedWorkspace, let workspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id) {
+        if let selectedWorkspaceId, let workspace = workspaceRepository.findWorkspace(with: selectedWorkspaceId) {
             selectedWorkspaces = [workspace]
         } else {
             selectedWorkspaces = []
         }
         selectedApps = []
+        updateApps()
+    }
+
+    private func updateApps() {
+        if let selectedWorkspaceId {
+            workspaceApps = workspaceRepository.findWorkspace(with: selectedWorkspaceId)?.apps
+        } else {
+            workspaceApps = nil
+        }
     }
 }
 
 extension MainViewModel {
     func saveWorkspace() {
-        guard let selectedWorkspace, !loadingWorkspace else { return }
+        guard let selectedWorkspaceId, !loadingWorkspace else { return }
 
         if workspaceName.trimmingCharacters(in: .whitespaces).isEmpty {
             workspaceName = "(empty)"
         }
 
         let updatedWorkspace = Workspace(
-            id: selectedWorkspace.id,
+            id: selectedWorkspaceId,
             name: workspaceName,
             display: workspaceDisplay,
             activateShortcut: workspaceShortcut,
             assignAppShortcut: workspaceAssignShortcut,
-            apps: selectedWorkspace.apps,
+            apps: workspaceApps ?? [],
             appToFocus: workspaceAppToFocus == AppConstants.lastFocusedOption ? nil : workspaceAppToFocus,
             symbolIconName: workspaceSymbolIconName,
             openAppsOnActivation: isOpenAppsOnActivationEnabled
         )
 
         workspaceRepository.updateWorkspace(updatedWorkspace)
-        workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
+        reloadWorkspaces()
     }
 
     func addWorkspace() {
@@ -198,7 +211,7 @@ extension MainViewModel {
 
                 self.workspaceRepository.addWorkspace(name: self.userInput)
                 self.workspaces = self.workspaceRepository.workspaces
-                self.selectedWorkspace = self.workspaces.last
+                self.workspaces.last.flatMap { self.selectedWorkspaces = [$0] }
             }
             .store(in: &cancellables)
     }
@@ -225,7 +238,7 @@ extension MainViewModel {
     }
 
     func addApp() {
-        guard let selectedWorkspace else { return }
+        guard let selectedWorkspaceId else { return }
 
         let fileChooser = FileChooser()
         let appUrl = fileChooser.runModalOpenPanel(
@@ -248,46 +261,48 @@ extension MainViewModel {
             return
         }
 
-        guard !selectedWorkspace.apps.containsApp(with: appBundleId) else { return }
+        guard !(workspaceApps ?? []).containsApp(with: appBundleId) else { return }
 
         workspaceRepository.addApp(
-            to: selectedWorkspace.id,
+            to: selectedWorkspaceId,
             app: .init(
                 name: appName,
                 bundleIdentifier: appBundleId,
-                iconPath: appUrl.iconPath
+                iconPath: appUrl.iconPath,
+                autoOpen: isOpenAppsOnActivationEnabled ? true : nil
             )
         )
 
-        workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
-
-        workspaceManager.activateWorkspaceIfActive(selectedWorkspace.id)
+        reloadWorkspaces()
+        workspaceManager.activateWorkspaceIfActive(selectedWorkspaceId)
     }
 
     func deleteSelectedApps() {
-        guard let selectedWorkspace, !selectedApps.isEmpty else { return }
+        guard let selectedWorkspaceId, !selectedApps.isEmpty else { return }
 
         let selectedApps = Array(selectedApps)
 
         for app in selectedApps {
             workspaceRepository.deleteApp(
-                from: selectedWorkspace.id,
+                from: selectedWorkspaceId,
                 app: app,
                 notify: app == selectedApps.last
             )
         }
 
-        workspaces = workspaceRepository.workspaces
-        self.selectedWorkspace = workspaceRepository.findWorkspace(with: selectedWorkspace.id)
-        workspaceApps = self.selectedWorkspace?.apps
-        self.selectedApps = []
-
-        workspaceManager.activateWorkspaceIfActive(selectedWorkspace.id)
+        reloadWorkspaces()
+        workspaceManager.activateWorkspaceIfActive(selectedWorkspaceId)
     }
 
-    func resetWorkspaceSymbolIcon() {
-        workspaceSymbolIconName = nil
-        saveWorkspace()
+    func setAutoOpen(_ enabled: Bool, for app: MacApp, in workspaceId: WorkspaceID) {
+        workspaceRepository.setAutoOpen(enabled, for: app, in: workspaceId)
+        updateApps()
+    }
+
+    func isAutoOpenEnabled(for app: MacApp) -> Bool {
+        guard let refreshedApp = workspaceApps?.first(where: { $0 == app }) else {
+            return false
+        }
+        return refreshedApp.autoOpen ?? false
     }
 }

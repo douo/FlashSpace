@@ -17,7 +17,7 @@ struct MainView: View {
             workspaces
             assignedApps
             WorkspaceConfigurationView(viewModel: viewModel)
-                .frame(maxWidth: 230)
+                .frame(maxWidth: 280)
         }
         .padding()
         .fixedSize()
@@ -49,8 +49,10 @@ struct MainView: View {
                 )
             }
             .contextMenu(forSelectionType: Workspace.self) { workspaces in
-                Button("Duplicate") {
+                Button {
                     viewModel.duplicateWorkspaces(workspaces)
+                } label: {
+                    Label("Duplicate", systemImage: "doc.on.doc")
                 }
                 .hidden(workspaces.isEmpty)
             }
@@ -84,8 +86,9 @@ struct MainView: View {
                 selection: $viewModel.selectedApps
             ) { app in
                 AppCell(
-                    workspaceId: viewModel.selectedWorkspace?.id ?? UUID(),
-                    app: app
+                    workspaceId: viewModel.selectedWorkspaceId ?? UUID(),
+                    app: app,
+                    viewModel: viewModel
                 )
             }
             .frame(width: 200, height: 350)
@@ -95,7 +98,7 @@ struct MainView: View {
                 Button(action: viewModel.addApp) {
                     Image(systemName: "plus")
                         .frame(height: 16)
-                }.disabled(viewModel.selectedWorkspace == nil)
+                }.disabled(viewModel.selectedWorkspaceId == nil)
 
                 Button(action: viewModel.deleteSelectedApps) {
                     Image(systemName: "trash")

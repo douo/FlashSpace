@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var selectedTab = "General"
+    @StateObject private var navigationManager = SettingsNavigationManager.shared
 
     var body: some View {
         NavigationSplitView(columnVisibility: .constant(.doubleColumn), sidebar: {
@@ -20,12 +20,15 @@ struct SettingsView: View {
                 .frame(maxHeight: .infinity, alignment: .top)
                 .navigationSplitViewColumnWidth(min: 440, ideal: 440)
         })
-        .frame(width: 780, height: 490)
+        .frame(width: 780, height: 580)
+        .onDisappear {
+            navigationManager.selectedTab = "General"
+        }
     }
 
     private var sideMenu: some View {
         VStack {
-            List(selection: $selectedTab) {
+            List(selection: $navigationManager.selectedTab) {
                 Label("General", systemImage: "gearshape")
                     .tag("General")
                 Label("Menu Bar", systemImage: "contextualmenu.and.cursorarrow")
@@ -34,12 +37,16 @@ struct SettingsView: View {
                     .tag("Gestures")
                 Label("Workspaces", systemImage: "square.stack.3d.up")
                     .tag("Workspaces")
-                Label("Floating Apps", systemImage: "pip")
+                Label("Picture-in-Picture", systemImage: "pip")
+                    .tag("Picture-in-Picture")
+                Label("Floating Apps", systemImage: "macwindow.on.rectangle")
                     .tag("FloatingApps")
-                Label("Focus Manager", systemImage: "macwindow.on.rectangle")
+                Label("Focus Manager", systemImage: "rectangle.righthalf.filled")
                     .tag("Focus")
                 Label("Space Control", systemImage: "rectangle.split.2x2")
                     .tag("SpaceControl")
+                Label("Workspace Switcher", systemImage: "rectangle.split.3x1")
+                    .tag("WorkspaceSwitcher")
                 Label("Profiles", systemImage: "person.2")
                     .tag("Profiles")
                 Label("Integrations", systemImage: "link")
@@ -50,6 +57,8 @@ struct SettingsView: View {
                     .tag("CLI")
                 Label("Acknowledgements", systemImage: "info.circle")
                     .tag("Acknowledgements")
+                Label("Donate", systemImage: "heart")
+                    .tag("Donate")
                 Label("About", systemImage: "person")
                     .tag("About")
             }
@@ -66,7 +75,7 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var details: some View {
-        switch selectedTab {
+        switch navigationManager.selectedTab {
         case "General":
             GeneralSettingsView()
         case "MenuBar":
@@ -77,10 +86,14 @@ struct SettingsView: View {
             GesturesSettingsView()
         case "Workspaces":
             WorkspacesSettingsView()
+        case "Picture-in-Picture":
+            PictureInPictureSettingsView()
         case "FloatingApps":
             FloatingAppsSettingsView()
         case "SpaceControl":
             SpaceControlSettingsView()
+        case "WorkspaceSwitcher":
+            WorkspaceSwitcherSettingsView()
         case "Integrations":
             IntegrationsSettingsView()
         case "Profiles":
@@ -91,6 +104,8 @@ struct SettingsView: View {
             CLISettingsView()
         case "Acknowledgements":
             AcknowledgementsSettingsView()
+        case "Donate":
+            DonateSettingsView()
         case "About":
             AboutSettingsView()
         default:

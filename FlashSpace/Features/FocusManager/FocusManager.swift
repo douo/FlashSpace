@@ -36,20 +36,40 @@ final class FocusManager {
         self.displayManager = displayManager
     }
 
-    func getHotKeys() -> [(AppHotKey, () -> ())] {
+    func getHotKeys() -> [RecordedHotKey] {
         guard settings.enableFocusManagement else { return [] }
 
         return [
-            settings.focusLeft.flatMap { ($0, focusLeft) },
-            settings.focusRight.flatMap { ($0, focusRight) },
-            settings.focusUp.flatMap { ($0, focusUp) },
-            settings.focusDown.flatMap { ($0, focusDown) },
-            settings.focusNextWorkspaceApp.flatMap { ($0, nextWorkspaceApp) },
-            settings.focusPreviousWorkspaceApp.flatMap { ($0, previousWorkspaceApp) },
-            settings.focusNextWorkspaceWindow.flatMap { ($0, nextWorkspaceWindow) },
-            settings.focusPreviousWorkspaceWindow.flatMap { ($0, previousWorkspaceWindow) },
-            settings.focusNextScreen.flatMap { ($0, focusNextScreen) },
-            settings.focusPreviousScreen.flatMap { ($0, focusPreviousScreen) }
+            settings.focusLeft.flatMap {
+                RecordedHotKey(name: .focusLeftApp, hotKey: $0, action: focusLeft)
+            },
+            settings.focusRight.flatMap {
+                RecordedHotKey(name: .focusRightApp, hotKey: $0, action: focusRight)
+            },
+            settings.focusUp.flatMap {
+                RecordedHotKey(name: .focusUpApp, hotKey: $0, action: focusUp)
+            },
+            settings.focusDown.flatMap {
+                RecordedHotKey(name: .focusDownApp, hotKey: $0, action: focusDown)
+            },
+            settings.focusNextWorkspaceApp.flatMap {
+                RecordedHotKey(name: .focusNextApp, hotKey: $0, action: nextWorkspaceApp)
+            },
+            settings.focusPreviousWorkspaceApp.flatMap {
+                RecordedHotKey(name: .focusPreviousApp, hotKey: $0, action: previousWorkspaceApp)
+            },
+            settings.focusNextWorkspaceWindow.flatMap {
+                RecordedHotKey(name: .focusNextWindow, hotKey: $0, action: nextWorkspaceWindow)
+            },
+            settings.focusPreviousWorkspaceWindow.flatMap {
+                RecordedHotKey(name: .focusPreviousWindow, hotKey: $0, action: previousWorkspaceWindow)
+            },
+            settings.focusNextScreen.flatMap {
+                RecordedHotKey(name: .focusNextScreen, hotKey: $0, action: focusNextScreen)
+            },
+            settings.focusPreviousScreen.flatMap {
+                RecordedHotKey(name: .focusPreviousScreen, hotKey: $0, action: focusPreviousScreen)
+            }
         ].compactMap { $0 }
     }
 
@@ -290,7 +310,7 @@ final class FocusManager {
     private func getFocusedAppIndex() -> (Int, [MacApp])? {
         guard let focusedApp else { return nil }
 
-        let workspace = workspaceManager.activeWorkspace[NSScreen.main?.localizedName ?? ""]
+        let workspace = workspaceManager.activeWorkspace[.current]
             ?? workspaceRepository.workspaces.first { $0.apps.containsApp(focusedApp) }
 
         guard let workspace else { return nil }

@@ -8,20 +8,9 @@
 import Foundation
 
 final class WorkspaceSettingsViewModel: ObservableObject {
-    @Published var windowTitleRegex = ""
-    @Published var isInputDialogPresented = false {
-        didSet {
-            if !isInputDialogPresented, windowTitleRegex.isNotEmpty {
-                addPendingPipApp()
-                windowTitleRegex = ""
-            }
-        }
-    }
-
-    private var pendingApp: PipApp?
     private let settings = AppDependencies.shared.workspaceSettings
 
-    func addPipApp() {
+    func addCornerHiddenApp() {
         let fileChooser = FileChooser()
         let appUrl = fileChooser.runModalOpenPanel(
             allowedFileTypes: [.application],
@@ -30,28 +19,15 @@ final class WorkspaceSettingsViewModel: ObservableObject {
 
         guard let bundle = appUrl?.bundle else { return }
 
-        pendingApp = PipApp(
-            name: bundle.localizedAppName,
-            bundleIdentifier: bundle.bundleIdentifier ?? "",
-            pipWindowTitleRegex: ""
-        )
-        isInputDialogPresented = true
-    }
-
-    func deletePipApp(_ app: PipApp) {
-        settings.deletePipApp(app)
-    }
-
-    private func addPendingPipApp() {
-        guard let pendingApp else { return }
-
-        settings.addPipApp(
-            .init(
-                name: pendingApp.name,
-                bundleIdentifier: pendingApp.bundleIdentifier,
-                pipWindowTitleRegex: windowTitleRegex
+        settings.addCornerHiddenApp(
+            CornerHiddenApp(
+                name: bundle.localizedAppName,
+                bundleIdentifier: bundle.bundleIdentifier ?? ""
             )
         )
-        self.pendingApp = nil
+    }
+
+    func deleteCornerHiddenApp(_ app: CornerHiddenApp) {
+        settings.deleteCornerHiddenApp(app)
     }
 }

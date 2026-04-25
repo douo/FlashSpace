@@ -60,9 +60,8 @@ final class DisplayManager: ObservableObject {
             return alternative
         }
 
-        let main = NSScreen.main?.localizedName ?? ""
-        Logger.log("[Display] Fallback for '\(display)' -> '\(main)'")
-        return main
+        Logger.log("[Display] Fallback for '\(display)' -> '\(DisplayName.current)'")
+        return .current
     }
 
     func lastActiveDisplay(from candidates: Set<DisplayName>) -> DisplayName {
@@ -74,7 +73,7 @@ final class DisplayManager: ObservableObject {
             return cursorDisplay
         }
 
-        return candidates.first ?? NSScreen.main?.localizedName ?? ""
+        return candidates.first ?? .current
     }
 
     // MARK: - CoreGraphics-based Display Resolution

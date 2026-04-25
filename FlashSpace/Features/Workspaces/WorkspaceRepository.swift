@@ -37,7 +37,7 @@ final class WorkspaceRepository: ObservableObject {
         let workspace = Workspace(
             id: .init(),
             name: name,
-            display: NSScreen.main?.localizedName ?? "",
+            display: .current,
             activateShortcut: nil,
             assignAppShortcut: nil,
             apps: []
@@ -102,6 +102,23 @@ final class WorkspaceRepository: ObservableObject {
 
             workspaces[index] = workspace
         }
+        notifyAboutChanges()
+    }
+
+    func setAutoOpenForApps(_ enabled: Bool, in workspaceId: WorkspaceID) {
+        guard let workspaceIndex = workspaces.firstIndex(where: { $0.id == workspaceId }) else { return }
+
+        for appIndex in workspaces[workspaceIndex].apps.indices {
+            workspaces[workspaceIndex].apps[appIndex].autoOpen = enabled ? true : nil
+        }
+        notifyAboutChanges()
+    }
+
+    func setAutoOpen(_ enabled: Bool, for app: MacApp, in workspaceId: WorkspaceID) {
+        guard let workspaceIndex = workspaces.firstIndex(where: { $0.id == workspaceId }) else { return }
+        guard let appIndex = workspaces[workspaceIndex].apps.firstIndex(of: app) else { return }
+
+        workspaces[workspaceIndex].apps[appIndex].autoOpen = enabled ? true : nil
         notifyAboutChanges()
     }
 

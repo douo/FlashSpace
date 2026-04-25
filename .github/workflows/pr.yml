@@ -27,6 +27,7 @@ jobs:
             ci
             docs
             chore
+            refactor
           scopes: |
             workspaces
             floating-apps
@@ -39,6 +40,7 @@ jobs:
             profiles
             integrations
             pip
+            switcher
 
       - uses: marocchino/sticky-pull-request-comment@v2
         # When the previous steps fails, the workflow would stop. By adding this
