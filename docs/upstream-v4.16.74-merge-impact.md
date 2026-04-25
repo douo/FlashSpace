@@ -211,7 +211,36 @@
 - 短时间 smoke test 未产生新的 crash report。
 - 正式版和 Dev 版 bundle id 不同，但不建议同时运行。
 
-## 待单独处理
+## 正式版打包注意事项
 
-- CLI Release codesign patch 暂未合入本次业务合并。
-- 后续应作为单独 commit 处理，避免和 upstream 业务变更混在一起。
+CLI 签名不放进业务代码变更里。Release 打包完成后，如果需要手工补签 app bundle 内的 CLI，可执行：
+
+```bash
+APP="/path/to/FlashSpace.app"
+IDENTITY="Developer ID Application: <Team Name> (<Team ID>)"
+
+codesign --force \
+  --sign "$IDENTITY" \
+  --options runtime \
+  "$APP/Contents/Resources/flashspace"
+```
+
+如果只是本机自用、没有 Developer ID，也可以使用 ad-hoc 签名：
+
+```bash
+APP="/path/to/FlashSpace.app"
+
+codesign --force \
+  --sign - \
+  --options runtime \
+  "$APP/Contents/Resources/flashspace"
+```
+
+补签后建议验证：
+
+```bash
+codesign --verify --deep --strict --verbose=2 "$APP"
+codesign -dv --verbose=4 "$APP/Contents/Resources/flashspace"
+```
+
+如果后续还要分发给其它机器，补签 CLI 后还需要重新签整个 `.app`，并按正常流程 notarize。
