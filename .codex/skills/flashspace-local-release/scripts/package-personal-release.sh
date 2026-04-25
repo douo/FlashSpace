@@ -40,19 +40,45 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/
 BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
 OUT_DIR=".build/PersonalRelease"
 ZIP="$OUT_DIR/FlashSpace-${VERSION}-local.zip"
+ENTITLEMENTS=".build/PersonalRelease/flashspace-local.entitlements"
+
+mkdir -p "$OUT_DIR"
+cat > "$ENTITLEMENTS" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+
+echo "==> Re-signing Sparkle nested components ad-hoc with hardened runtime"
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
+for item in \
+  "$SPARKLE/XPCServices/Downloader.xpc" \
+  "$SPARKLE/XPCServices/Installer.xpc" \
+  "$SPARKLE/Updater.app" \
+  "$SPARKLE/Autoupdate" \
+  "$SPARKLE/Sparkle"; do
+  if [[ -e "$item" ]]; then
+    codesign --force --sign - --options runtime "$item"
+  fi
+done
+codesign --force --sign - --options runtime "$APP/Contents/Frameworks/Sparkle.framework"
 
 echo "==> Signing bundled CLI ad-hoc with hardened runtime"
 codesign --force --sign - --options runtime "$APP/Contents/Resources/flashspace"
 
 echo "==> Re-signing app ad-hoc with hardened runtime"
-codesign --force --deep --sign - --options runtime "$APP"
+codesign --force --sign - --options runtime --entitlements "$ENTITLEMENTS" "$APP"
 
 echo "==> Verifying app signature"
 codesign --verify --deep --strict --verbose=2 "$APP"
 
 echo "==> Packaging zip"
-rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR"
+rm -f "$ZIP"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
 echo

@@ -47,11 +47,12 @@ The script:
 
 1. Runs `xcodegen generate`.
 2. Builds `Release` with local/ad-hoc signing.
-3. Signs `FlashSpace.app/Contents/Resources/flashspace` ad-hoc with hardened runtime.
-4. Re-signs the whole `.app` ad-hoc with hardened runtime.
-5. Verifies the app with `codesign --verify --deep --strict`.
-6. Writes a zip to `.build/PersonalRelease/FlashSpace-<version>-local.zip`.
-7. Prints the zip SHA256.
+3. Re-signs Sparkle nested XPC/app/binaries ad-hoc with hardened runtime.
+4. Signs `FlashSpace.app/Contents/Resources/flashspace` ad-hoc with hardened runtime.
+5. Re-signs the whole `.app` ad-hoc with hardened runtime and `disable-library-validation`.
+6. Verifies the app with `codesign --verify --deep --strict`.
+7. Writes a zip to `.build/PersonalRelease/FlashSpace-<version>-local.zip`.
+8. Prints the zip SHA256.
 
 Expected output app:
 
@@ -131,6 +132,7 @@ After merge or package:
 - `xcodebuild ... Debug build` passes after code changes.
 - Personal Release script completes successfully.
 - `codesign --verify --deep --strict --verbose=2 .build/DerivedData/Build/Products/Release/FlashSpace.app` passes.
+- Launching `/Applications/FlashSpace.app` does not produce a dyld Sparkle Team ID crash.
 - The bundled CLI reports ad-hoc runtime signing:
   ```bash
   codesign -dv --verbose=4 .build/DerivedData/Build/Products/Release/FlashSpace.app/Contents/Resources/flashspace

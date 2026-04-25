@@ -19,4 +19,5 @@ Keep this distinction clear:
 
 - Code history should not contain a `project.yml` CLI codesign patch.
 - Personal packaging can still ad-hoc sign `Contents/Resources/flashspace` after build.
+- Personal packaging must also re-sign Sparkle nested components and the outer app with `disable-library-validation`; otherwise dyld may reject `Sparkle.framework` at launch with a Team ID mismatch.
 - For Developer ID distribution, sign CLI with Developer ID, re-sign the entire app, then notarize.
