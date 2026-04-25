@@ -1,0 +1,4 @@
+interface:
+  display_name: "FlashSpace Local Release"
+  short_description: "Merge and package this FlashSpace fork for personal macOS use."
+  default_prompt: "Use this project skill for /Users/tiou/playground/FlashSpace release tasks: merge upstream, preserve local behavior, build a personal Release app, ad-hoc sign, package, and install."
