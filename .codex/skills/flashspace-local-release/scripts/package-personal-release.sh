@@ -110,7 +110,7 @@ for item in \
   "$APP"; do
   codesign --verify --strict --all-architectures -R="$SIGNING_REQUIREMENT" "$item"
 done
-codesign -dr - "$APP" 2> "$OUT_DIR/FlashSpace-${VERSION}-designated-requirement.txt"
+codesign -dr - "$APP" > "$OUT_DIR/FlashSpace-${VERSION}-designated-requirement.txt" 2>&1
 
 "$APP/Contents/Resources/flashspace" focus --help
 "$APP/Contents/Resources/flashspace" list-workspaces --help
