@@ -54,7 +54,7 @@ xcodebuild \
   DEVELOPMENT_TEAM='' \
   OTHER_CODE_SIGN_FLAGS='' \
   ENABLE_HARDENED_RUNTIME=NO \
-  build
+  clean build
 
 APP=".build/DerivedData/Build/Products/Release/FlashSpace.app"
 if [[ ! -d "$APP" ]]; then

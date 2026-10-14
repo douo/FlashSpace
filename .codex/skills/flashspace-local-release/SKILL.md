@@ -47,7 +47,7 @@ bash .codex/skills/flashspace-local-release/scripts/package-personal-release.sh
 The script:
 
 1. Requires a clean committed worktree and loads `~/.config/apple/signing.env`; checks the configured certificate is available in its keychain.
-2. Runs `xcodegen generate` and builds `Release` with that certificate and manual signing.
+2. Runs `xcodegen generate` and a clean `Release` build with that certificate and manual signing, avoiding stale resource seals from a previous packaging pass.
 3. Verifies the build, then signs Sparkle nested XPC/app/binaries with the same certificate and hardened runtime.
 4. Signs `FlashSpace.app/Contents/Resources/flashspace` with the same certificate and the stable identifier `flashspace`.
 5. Signs the whole `.app` with hardened runtime and `disable-library-validation`, preserving the project's other entitlements.
