@@ -277,6 +277,11 @@ codesign --verify --deep --strict --verbose=2 "$APP"
 codesign -dr - "$APP"
 ```
 
-项目技能中的旧个人发布脚本仍使用 ad-hoc 签名，不符合当前规则，不能直接用于新发布。
+项目个人发布脚本已更新为读取 `~/.config/apple/signing.env`，验证固定证书可用后，
+按从内到外的顺序签名 Sparkle、CLI 和 App，并对所有架构验证证书一致。
+CLI 使用稳定的 `flashspace` 签名标识，App 保留 `pl.wojciechkulik.FlashSpace`。
 正式打包应从已提交的干净工作区开始；安装前比较既有 App 的 designated requirement。
+本次核验发现现有 `/Applications/FlashSpace.app` 4.16.74 为 ad-hoc 签名，其 requirement
+绑定旧二进制哈希。改用固定证书属于身份迁移，不能保证沿用旧辅助功能／录屏授权；
+后续固定证书版本才具备稳定的签名身份。
 如需 Apple 公证或 App Store 分发，需另行使用 Apple 签发的身份及相应流程。

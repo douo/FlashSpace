@@ -18,6 +18,7 @@ Do not document internal speculation. Only document behavior confirmed by code r
 Keep this distinction clear:
 
 - Code history should not contain a `project.yml` CLI codesign patch.
-- Personal packaging can still ad-hoc sign `Contents/Resources/flashspace` after build.
-- Personal packaging must also re-sign Sparkle nested components and the outer app with `disable-library-validation`; otherwise dyld may reject `Sparkle.framework` at launch with a Team ID mismatch.
+- Personal packaging signs `Contents/Resources/flashspace` after build using the fixed certificate loaded from `~/.config/apple/signing.env`; never use ad-hoc signing.
+- Personal packaging must also sign Sparkle nested components with that certificate and the outer app with `disable-library-validation`; otherwise hardened runtime may reject the self-signed framework because it has no Apple Team ID.
+- Compare the designated requirement with the existing installation. If the existing app is ad-hoc signed, document the identity migration and possible permission reauthorization rather than claiming signature continuity.
 - For Developer ID distribution, sign CLI with Developer ID, re-sign the entire app, then notarize.
