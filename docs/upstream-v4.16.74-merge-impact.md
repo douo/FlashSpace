@@ -1,4 +1,53 @@
-# FlashSpace v4.16.74 合并影响说明
+# FlashSpace upstream 合并影响说明
+
+## 2026-10-14：v4.18.79
+
+### 合并范围
+
+- 基线：本地 `55a62c2`，已集成 upstream `v4.16.74`。
+- 目标：稳定版 `v4.18.79`（`1215291`），不包含其后的赞助文档更新。
+- 集成分支：`integration/upstream-v4.18.79-local`。
+- 回退分支：`backup/pre-upstream-merge-20261014-092901`；原集成分支也保留在原提交。
+- 本次只合并和验证代码，不替换 `/Applications/FlashSpace.app`。
+
+### 新增功能与修复
+
+- 动态模式下，激活工作区会根据应用当前所在屏幕重新判断被替换的工作区，清除其旧活动记录，并隐藏其中未被新工作区或 Floating Apps 保留的应用。修复窗口跨屏移动后仍残留可见的问题（#612）。
+- 工作区集成脚本使用串行队列维持执行顺序；切换前脚本仍等待完成，切换后脚本不再阻塞主线程。激活结束时刷新时间戳，避免延迟到达的焦点通知触发错误切换（#613）。
+- 快捷键映射增加 ASCII 布局回退，并在布局切换时更新录制所用的反向映射，改善非拉丁布局下的快捷键注册和保存（#605）。
+- Chromium 画中画识别兼容 `Picture in Picture` 和 `Picture-in-picture` 两种标题，忽略大小写（#579、#590）。
+- 菜单栏标题可由脚本生成，可用于同时显示多屏的当前工作区；新选项默认关闭（#592）。
+- CLI 新增 `list-workspaces --active`，并改进 Homebrew 安装检测、路径显示及脚本 PATH（#582、#591、#593）。
+- 主窗口或设置窗口打开时显示 Dock 图标，关闭后隐藏；检查更新入口移到 General；Sparkle 从 2.8.1 更新到 2.9.6。
+
+### 本地特性保留与冲突处理
+
+- 15 个未被本轮上游改动触及的本地源码文件与合并前保持一致，涵盖跨屏焦点切换、快捷键和 CLI 入口、CoreGraphics 显示器解析、Chromium 焦点辅助、最小化及微小辅助窗口过滤、动态工作区 `canActivate` 判断。
+- `WorkspaceManager` 保留实际应用屏幕的焦点记忆、AXWebArea 焦点修复及延迟 0.2 秒后的 `Esc` 回退调用、激活时的光标屏幕／主屏幕回退。
+- 唯一文本冲突位于 `hideApps` 的筛选条件。保留本地诊断日志，并加入上游对被替换工作区应用的额外隐藏条件；参数命名为 `extraAppsToHide`，避免与最终筛选结果混淆。
+- 当前工作区应用、Floating Apps、未分配应用设置及 Finder 保护条件仍先于额外隐藏条件执行。
+- 保留原有 `DisplayName.current` / `NSScreen.main` 语义，不全局改为鼠标屏幕。
+- 本地的 `focusNextScreen` / `focusPreviousScreen` 配置字段及 App、CLI 请求分支都保留。
+
+### 升级和验证注意事项
+
+- App 与 CLI 的 `listWorkspaces` 请求增加了必需的 `active` 字段，应同步更新两者。本次 Debug 验证前重新构建双架构 CLI，避免构建脚本复用旧协议的缓存二进制。
+- Xcode 27 的 SwiftPM 默认构建系统把产物放在 `.build/out/Products/Release`，原先硬编码的架构目录会取到旧二进制。`project.yml` 改为一次构建 arm64/x86_64，并通过 `--show-bin-path` 获取产物路径；构建失败立即退出。未添加 CLI 签名命令。
+- 菜单栏脚本默认关闭，现有标题模板继续使用。
+- 源码对比及编译不能替代桌面操作验证；跨屏移动后的隐藏范围、快速切换、全屏应用、Chromium/Vimium C 焦点和输入法切换仍需在实际使用中回归。
+- 上游未正式支持原生全屏应用，本地 CoreGraphics 回退仍有必要；上游 #618 的 Sequoia 15.8.1 稳定性报告尚未确定原因。
+
+### 本次已完成的验证
+
+- `xcodegen generate` 和 Debug `xcodebuild` 通过（Xcode 27.0 / macOS 26.6.2）。
+- CLI 的 arm64/x86_64 通用二进制构建通过；实际执行了更新后的 CLI 构建脚本，并核对最终 App 内 CLI 的 `focus --help`、`list-workspaces --help`，确认跨屏选项和 `--active` 同时存在。
+- App 和内嵌 CLI 均验证为指定自签名证书 `074B6E7241401A25C5E71A32F951B7BEE07A9CAC`；App 的 `codesign --verify --deep --strict` 通过。
+- 自动源码对比确认上述 15 个本地文件、`WorkspaceManager` 的 6 个焦点／应用方法及激活前置回退逻辑与合并前一致；App 与 CLI 请求模型除新增 `active` 字段外与合并前一致。
+- 本次变更的 26 个 App Swift 文件通过 SwiftLint 和 SwiftFormat。全量 SwiftLint 无错误，但有既有警告；全量 SwiftFormat 仍报告 4 个未改动的本地文件需要格式化，本次未改写这些文件。
+- `git diff --check` 通过；项目生成文件中未引入 CLI codesign 步骤。
+- 构建及检查日志位于 `.build/MergeValidation-v4.18.79/`，未进行桌面多屏操作、启动 Dev App 或安装替换。
+
+## v4.16.74 历史合并记录
 
 本文档记录本地分支合并 upstream `v4.16.74` 后的主要业务功能变化，以及对当前使用方式的影响。
 
@@ -204,43 +253,30 @@
 - 如果快捷键无效，先检查 FlashSpace 是否 paused，再重新录制快捷键。
 - 如果动态 workspace 行为异常，优先检查是否有最小化窗口、全屏窗口、或者 auto-open 配置变化。
 
-## 已验证项
+## v4.16.74 已验证项（历史）
 
 - `xcodebuild -project FlashSpace.xcodeproj -scheme FlashSpace -configuration Debug -destination 'platform=macOS' build` 通过。
 - `FlashSpace-Dev.app` 可单独启动。
 - 短时间 smoke test 未产生新的 crash report。
 - 正式版和 Dev 版 bundle id 不同，但不建议同时运行。
 
-## 正式版打包注意事项
+## 当前本机签名规则
 
-CLI 签名不放进业务代码变更里。Release 打包完成后，如果需要手工补签 app bundle 内的 CLI，可执行：
+遵循 `/Users/tiou/.config/apple/codex-build-policy.md` 和
+`/Users/tiou/.agents/skills/apple-signing-release/SKILL.md`。本机固定使用
+`Tiou's Local Self-Signed`（`074B6E7241401A25C5E71A32F951B7BEE07A9CAC`），不得回退到 ad-hoc。
 
-```bash
-APP="/path/to/FlashSpace.app"
-IDENTITY="Developer ID Application: <Team Name> (<Team ID>)"
-
-codesign --force \
-  --sign "$IDENTITY" \
-  --options runtime \
-  "$APP/Contents/Resources/flashspace"
-```
-
-如果只是本机自用、没有 Developer ID，也可以使用 ad-hoc 签名：
+CLI 补签仍属于构建后验证／打包步骤，不向 `project.yml` 添加 CLI codesign 命令。
+签名嵌套组件及 CLI 后，再签整个 App 并验证。可使用用户级辅助工具：
 
 ```bash
 APP="/path/to/FlashSpace.app"
-
-codesign --force \
-  --sign - \
-  --options runtime \
-  "$APP/Contents/Resources/flashspace"
-```
-
-补签后建议验证：
-
-```bash
+/Users/tiou/bin/apple-codesign "$APP/Contents/Resources/flashspace"
+/Users/tiou/bin/apple-codesign "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
-codesign -dv --verbose=4 "$APP/Contents/Resources/flashspace"
+codesign -dr - "$APP"
 ```
 
-如果后续还要分发给其它机器，补签 CLI 后还需要重新签整个 `.app`，并按正常流程 notarize。
+项目技能中的旧个人发布脚本仍使用 ad-hoc 签名，不符合当前规则，不能直接用于新发布。
+正式打包应从已提交的干净工作区开始；安装前比较既有 App 的 designated requirement。
+如需 Apple 公证或 App Store 分发，需另行使用 Apple 签发的身份及相应流程。

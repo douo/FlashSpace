@@ -82,6 +82,7 @@ The app allows workspaces to be switched independently on each display.
 - [x] [CLI](#-command-line-interface) - interact with the app using the command line interface
 - [x] [Picture-in-Picture](#-picture-in-picture-support) support
 - [x] [SketchyBar] integration
+- [x] [Raycast extension] created by [krmbzds](https://github.com/krmbzds)
 
 ## ⚖️ Project Values
 
@@ -343,35 +344,57 @@ custom global shortcuts. You can use it also with FlashSpace through the CLI.
 You could even define some shortcuts that are not available in FlashSpace, like
 switching between specific profiles.
 
+### 👉 Raycast Extension
+
+<img height="400" alt="image" src="https://github.com/user-attachments/assets/93404797-990d-44d8-947b-ae21871dacb2" />
+
+If you are a Raycast user, you can use the [Raycast extension] to manage
+FlashSpace without leaving your keyboard.
+
+Big thanks to [krmbzds](https://github.com/krmbzds) for creating this extension!
+
 ## 💛 Sponsors
 
 Big thanks to all the sponsors who support this project 🍻!
 
 ### Monthly Sponsors
 
-<a href="https://github.com/bjrmatos"><img src="https://avatars.githubusercontent.com/u/4262050" width="40" height="40" alt="@bjrmatos" title="bjrmatos"></a>
-<a href="https://github.com/notlus"><img src="https://avatars.githubusercontent.com/u/828989" width="40" height="40" alt="@notlus" title="notlus"></a>
-<a href="https://github.com/Cyberax"><img src="https://avatars.githubusercontent.com/u/1136550" width="40" height="40" alt="@Cyberax" title="Cyberax"></a>
-<a href="https://github.com/dosboxd"><img src="https://avatars.githubusercontent.com/u/16291547" width="40" height="40" alt="@dosboxd" title="dosboxd"></a>
+<table>
+    <tr>
+        <td><a href="https://github.com/bjrmatos"><img src="https://avatars.githubusercontent.com/u/4262050" width="40" height="40" alt="@bjrmatos" title="bjrmatos"></a></td>
+        <td><a href="https://github.com/notlus"><img src="https://avatars.githubusercontent.com/u/828989" width="40" height="40" alt="@notlus" title="notlus"></a></td>
+        <td><a href="https://github.com/Cyberax"><img src="https://avatars.githubusercontent.com/u/1136550" width="40" height="40" alt="@Cyberax" title="Cyberax"></a></td>
+        <td><a href="https://github.com/dosboxd"><img src="https://avatars.githubusercontent.com/u/16291547" width="40" height="40" alt="@dosboxd" title="dosboxd"></a></td>
+    </tr>
+</table>
 
 ### One Time Sponsors
 
-<a href="https://github.com/danscheer"><img src="https://avatars.githubusercontent.com/u/56642865" width="40" height="40" alt="@danscheer" title="danscheer"></a>
-<a href="https://github.com/felipeva"><img src="https://avatars.githubusercontent.com/u/4754195" width="40" height="40" alt="@felipeva" title="felipeva"></a>
-<a href="https://github.com/sinan-guler"><img src="https://avatars.githubusercontent.com/u/37443512" width="40" height="40" alt="@sinan-guler" title="sinan-guler"></a>
-<a href="https://github.com/maxschipper"><img src="https://avatars.githubusercontent.com/u/150921823" width="40" height="40" alt="@maxschipper" title="maxschipper"></a>
-<a href="https://github.com/sergiopatino"><img src="https://avatars.githubusercontent.com/u/868839" width="40" height="40" alt="@sergiopatino" title="sergiopatino"></a>
-<a href="https://github.com/ashaney"><img src="https://avatars.githubusercontent.com/u/25646923" width="40" height="40" alt="@ashaney" title="ashaney"></a>
-<a href="https://github.com/exsesx"><img src="https://avatars.githubusercontent.com/u/20399517" width="40" height="40" alt="@exsesx" title="exsesx"></a>
-<a href="https://github.com/konpa"><img src="https://avatars.githubusercontent.com/u/778731" width="40" height="40" alt="@konpa" title="konpa"></a>
-<a href="https://github.com/nbargnesi"><img src="https://avatars.githubusercontent.com/u/1265294" width="40" height="40" alt="@nbargnesi" title="nbargnesi"></a>
-<a href="https://github.com/bchopson"><img src="https://avatars.githubusercontent.com/u/14081421" width="40" height="40" alt="@bchopson" title="bchopson"></a>
-<a href="https://github.com/NextMerge"><img src="https://avatars.githubusercontent.com/u/178944810" width="40" height="40" alt="@NextMerge" title="NextMerge"></a>
+<table>
+    <tr>
+        <td><a href="https://github.com/danscheer"><img src="https://avatars.githubusercontent.com/u/56642865" width="40" height="40" alt="@danscheer" title="danscheer"></a></td>
+        <td><a href="https://github.com/felipeva"><img src="https://avatars.githubusercontent.com/u/4754195" width="40" height="40" alt="@felipeva" title="felipeva"></a></td>
+        <td><a href="https://github.com/sinan-guler"><img src="https://avatars.githubusercontent.com/u/37443512" width="40" height="40" alt="@sinan-guler" title="sinan-guler"></a></td>
+        <td><a href="https://github.com/maxschipper"><img src="https://avatars.githubusercontent.com/u/150921823" width="40" height="40" alt="@maxschipper" title="maxschipper"></a></td>
+        <td><a href="https://github.com/sergiopatino"><img src="https://avatars.githubusercontent.com/u/868839" width="40" height="40" alt="@sergiopatino" title="sergiopatino"></a></td>
+        <td><a href="https://github.com/ashaney"><img src="https://avatars.githubusercontent.com/u/25646923" width="40" height="40" alt="@ashaney" title="ashaney"></a></td>
+        <td><a href="https://github.com/exsesx"><img src="https://avatars.githubusercontent.com/u/20399517" width="40" height="40" alt="@exsesx" title="exsesx"></a></td>
+        <td><a href="https://github.com/konpa"><img src="https://avatars.githubusercontent.com/u/778731" width="40" height="40" alt="@konpa" title="konpa"></a></td>
+        <td><a href="https://github.com/nbargnesi"><img src="https://avatars.githubusercontent.com/u/1265294" width="40" height="40" alt="@nbargnesi" title="nbargnesi"></a></td>
+        <td><a href="https://github.com/bchopson"><img src="https://avatars.githubusercontent.com/u/14081421" width="40" height="40" alt="@bchopson" title="bchopson"></a></td>
+        <td><a href="https://github.com/NextMerge"><img src="https://avatars.githubusercontent.com/u/178944810" width="40" height="40" alt="@NextMerge" title="NextMerge"></a></td>
+        <td><a href="https://github.com/v1adko"><img src="https://avatars.githubusercontent.com/u/11582927" width="40" height="40" alt="@v1adko" title="v1adko"></a></td>
+    </tr>
+</table>
 
 ### Past Monthly Sponsors
 
-<a href="https://github.com/frankroeder"><img src="https://avatars.githubusercontent.com/u/19746932" width="40" height="40" alt="@frankroeder" title="frankroeder"></a>
-<a href="https://github.com/aayio"><img src="https://avatars.githubusercontent.com/u/41933025" width="40" height="40" alt="@aayio" title="aayio"></a>
+<table>
+    <tr>
+        <td><a href="https://github.com/frankroeder"><img src="https://avatars.githubusercontent.com/u/19746932" width="40" height="40" alt="@frankroeder" title="frankroeder"></a></td>
+        <td><a href="https://github.com/aayio"><img src="https://avatars.githubusercontent.com/u/41933025" width="40" height="40" alt="@aayio" title="aayio"></a></td>
+    </tr>
+</table>
 
 ## 🤓 My Other Projects
 
@@ -387,3 +410,4 @@ Big thanks to all the sponsors who support this project 🍻!
 [Releases Page]: https://github.com/wojciech-kulik/FlashSpace/releases
 [SKHD]: https://github.com/koekeishiya/skhd
 [XcodeProjectCLI]: https://github.com/wojciech-kulik/XcodeProjectCLI
+[Raycast extension]: https://www.raycast.com/krmbzds/flashspace

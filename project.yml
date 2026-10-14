@@ -44,8 +44,8 @@ targets:
 
     settings:
       base:
-        MARKETING_VERSION: 4.16.74
-        CURRENT_PROJECT_VERSION: 74
+        MARKETING_VERSION: 4.18.79
+        CURRENT_PROJECT_VERSION: 79
         ASSETCATALOG_COMPILER_APPICON_NAME: FlashSpaceIcon
         CODE_SIGN_ENTITLEMENTS: FlashSpace/FlashSpace.entitlements
         DEVELOPMENT_TEAM: "${XCODE_DEVELOPMENT_TEAM}"
@@ -95,12 +95,9 @@ targets:
 
           if [ ! -e "$SOURCE_PATH" ] || [ "$CONFIGURATION" == "Release" ]; then
             echo "Building FlashSpace CLI"
-            swift build --arch x86_64 -c release --package-path FlashSpaceCLI
-            swift build --arch arm64 -c release --package-path FlashSpaceCLI
-            lipo -create \
-              FlashSpaceCLI/.build/arm64-apple-macosx/release/flashspace \
-              FlashSpaceCLI/.build/x86_64-apple-macosx/release/flashspace \
-              -output FlashSpaceCLI/.build/flashspace
+            swift build --arch x86_64 --arch arm64 -c release --package-path FlashSpaceCLI || exit 1
+            CLI_BIN_PATH="$(swift build --arch x86_64 --arch arm64 -c release --package-path FlashSpaceCLI --show-bin-path)" || exit 1
+            cp "$CLI_BIN_PATH/flashspace" "$SOURCE_PATH" || exit 1
           else
             echo "FlashSpace CLI already built"
           fi

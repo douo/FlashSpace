@@ -12,11 +12,13 @@ struct WhatsNewView: View {
     @Environment(\.dismissWindow) private var dismissWindow
 
     private let features: [String] = [
-        "Slightly improved Workspace Switcher UI.",
-        "Enabled mouse click support for the Workspace Switcher."
+        "The Dock icon now appears when either the main window or the settings window is open."
     ]
 
     private let bugFixes: [String] = [
+        "Fixed hiding apps in dynamic mode when using multiple displays.",
+        "Fixed issues with non-ASCII shortcuts.",
+        "Fixed script integration issues."
     ]
 
     var body: some View {
