@@ -37,6 +37,7 @@ final class WorkspaceManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var observeFocusCancellable: AnyCancellable?
     private var appsHiddenManually: [WorkspaceID: [MacApp]] = [:]
+    private var lastWeChatReopenRequest = Date.distantPast
     private let hideAgainSubject = PassthroughSubject<HideAppsRequest, Never>()
 
     private lazy var focusedWindowTracker = AppDependencies.shared.focusedWindowTracker
@@ -115,16 +116,17 @@ final class WorkspaceManager: ObservableObject {
     }
 
     private func retryWeChatWindowRestore(for app: NSRunningApplication) {
-        // WeChat can become active before its only window is restored.
         guard app.isWeChat else { return }
 
-        for delay in [0.2, 0.6] {
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-                guard let self, !workspaceSettings.isPaused,
-                      activeWorkspace.values.contains(where: { $0.apps.containsApp(app) }),
-                      NSWorkspace.shared.frontmostApplication == app else { return }
+        // Activating WeChat does not always reopen its window after it was hidden.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self, !workspaceSettings.isPaused,
+                  activeWorkspace.values.contains(where: { $0.apps.containsApp(app) }),
+                  NSWorkspace.shared.frontmostApplication == app,
+                  Date().timeIntervalSince(lastWeChatReopenRequest) >= 1 else { return }
 
-                app.raiseSingleWindowIfNotVisible()
+            if WeChatWindowRestore.reopenIfNeeded(app) {
+                lastWeChatReopenRequest = Date()
             }
         }
     }
