@@ -11,4 +11,5 @@ extension NSRunningApplication {
     var isFinder: Bool { bundleIdentifier == "com.apple.finder" }
     var isPython: Bool { bundleIdentifier == "org.python.python" }
     var isOrion: Bool { bundleIdentifier == "com.kagi.kagimacOS" }
+    var isWeChat: Bool { bundleIdentifier == "com.tencent.xinWeChat" }
 }

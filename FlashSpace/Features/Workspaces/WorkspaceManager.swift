@@ -110,7 +110,23 @@ final class WorkspaceManager: ObservableObject {
             .sink { [weak self] application in
                 self?.invalidateInactiveWorkspaces()
                 self?.rememberLastFocusedApp(application, retry: true)
+                self?.retryWeChatWindowRestore(for: application)
             }
+    }
+
+    private func retryWeChatWindowRestore(for app: NSRunningApplication) {
+        // WeChat can become active before its only window is restored.
+        guard app.isWeChat else { return }
+
+        for delay in [0.2, 0.6] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self, !workspaceSettings.isPaused,
+                      activeWorkspace.values.contains(where: { $0.apps.containsApp(app) }),
+                      NSWorkspace.shared.frontmostApplication == app else { return }
+
+                app.raiseSingleWindowIfNotVisible()
+            }
+        }
     }
 
     private func rememberLastFocusedApp(_ application: NSRunningApplication, retry: Bool) {
@@ -191,6 +207,8 @@ final class WorkspaceManager: ObservableObject {
             Logger.log("FOCUS: \(toFocus?.localizedName ?? "")")
             toFocus?.activate()
             centerCursorIfNeeded(in: toFocus?.frame)
+
+            if let toFocus { retryWeChatWindowRestore(for: toFocus) }
 
             // Workaround: 对于 Chromium 系浏览器，需要额外处理 web content 焦点
             // unhide 后浏览器窗口获得焦点，但 web content 不会，导致扩展（如 Vimium C）无法接收键盘事件
